@@ -9,18 +9,28 @@
     "type": "git",
     "url": "git+https://github.com/red-cup-engineering/prov-o-provenance-service.git"
   },
-  "keywords": ["prov-o", "provenance", "rdf", "turtle", "json-ld", "content-address", "reproducible-builds"],
+  "keywords": [
+    "prov-o",
+    "provenance",
+    "rdf",
+    "turtle",
+    "json-ld",
+    "content-address",
+    "reproducible-builds"
+  ],
   "exports": {
     ".": "./index.mjs",
     "./project-provenance-as-prov-o": "./scripts/project-provenance-as-prov-o.mjs",
     "./compute-file-provenance-entities": "./scripts/compute-file-provenance-entities.mjs",
     "./check-provenance-closure": "./scripts/check-provenance-closure.mjs",
-    "./provenance-manifest.schema.json": "./data/records/schema/provenance-manifest.schema.json"
+    "./provenance-manifest.schema.json": "./data/records/schema/provenance-manifest.schema.json",
+    "./compose-provenance-manifest": "./scripts/compose-provenance-manifest.mjs"
   },
   "bin": {
     "project-provenance-as-prov-o": "scripts/project-provenance-as-prov-o.mjs",
     "compute-file-provenance-entities": "scripts/compute-file-provenance-entities.mjs",
-    "check-provenance-closure": "scripts/check-provenance-closure.mjs"
+    "check-provenance-closure": "scripts/check-provenance-closure.mjs",
+    "compose-provenance-manifest": "scripts/compose-provenance-manifest.mjs"
   },
   "files": [
     "index.mjs",

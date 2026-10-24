@@ -127,3 +127,29 @@ receiver enables it), each validated by `declareOffer` from `@red-cup-engineerin
 
 `npm test` — golden Turtle, determinism, closure failures, and a JSON-LD conformance check that expands the
 emitted JSON-LD with a real JSON-LD processor and compares it, under RDFC-1.0, with the Turtle.
+
+## composeProvenanceManifest
+
+~~~js
+export function composeProvenanceManifest({ fragments, baseIri? })
+~~~
+
+Composes manifest fragments into one admitted manifest. Typical fragments are a
+renderer's build receipt (`receipt.provenance` from
+`project-document-through-pandoc-service`), the people and organizations a paper
+declares as data, and an analysis run.
+
+- Declarations that share an `id` merge. List fields (`used`, `generated`,
+  `wasAssociatedWith`, `wasDerivedFrom`, `wasAttributedTo`) are unioned.
+- The output is ordered by `id`, so the same fragments in any order compose
+  to the same bytes.
+- Refusals: `InvalidRequest`, `ConflictingBaseIri`, `ConflictingDeclaration`
+  (the same id declares a scalar twice with different values), and
+  `InvalidManifest` (the composed manifest fails the schema).
+- **Precondition:** every fragment is a JSON object.
+- **Postcondition:** the output is a manifest that `admitManifest` accepts.
+- **Frame:** input fragments are not mutated.
+- **Effect class:** pure.
+
+Command: `compose-provenance-manifest` reads one JSON value per input line and
+writes one JSON value per output line.
