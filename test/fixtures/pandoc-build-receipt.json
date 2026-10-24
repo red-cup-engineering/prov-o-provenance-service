@@ -1,0 +1,241 @@
+{
+  "kind": "manuscript-build-receipt",
+  "version": 1,
+  "toolchain": {
+    "pandoc": {
+      "version": "3.1.3",
+      "versionLine": "pandoc 3.1.3",
+      "features": "-server +lua"
+    }
+  },
+  "sourceDateEpoch": 1700000000,
+  "startedAt": "2026-10-24T22:22:21.368Z",
+  "endedAt": "2026-10-24T22:49:31.148Z",
+  "inputs": [
+    {
+      "role": "part",
+      "path": "manuscript/00-intro.md",
+      "ni": "ni:///sha-256;eA0efDb22qZbiQFRFozOuJ-7ujlYb96kktzP35SG8Es",
+      "bytes": 142
+    },
+    {
+      "role": "part",
+      "path": "manuscript/01-results.md",
+      "ni": "ni:///sha-256;ehxAcAg7FWXSbNNKPQzqvkQ8O5Kys-dO5IQyq025m78",
+      "bytes": 65
+    },
+    {
+      "role": "metadata",
+      "path": "manuscript/metadata.yaml",
+      "ni": "ni:///sha-256;E60slv2KrSgtpefbrJ_9bYq_ERdvtPekiVOb2QHe8SM",
+      "bytes": 61
+    },
+    {
+      "role": "bibliography",
+      "path": "references.yaml",
+      "ni": "ni:///sha-256;nVMKNMZuV5qrKnhfbFTGUEGv7HUW-6mfEyVGkcKhaL8",
+      "bytes": 383
+    },
+    {
+      "role": "csl-style",
+      "path": "styles/minimal.csl",
+      "ni": "ni:///sha-256;ixowwzWWd3LAEfIlzCCIK5EqGKu-ktkRzQRp8VoIaRU",
+      "bytes": 1295
+    }
+  ],
+  "supportFiles": [],
+  "invocations": [
+    {
+      "format": "html",
+      "argv": [
+        "pandoc",
+        "--from=markdown",
+        "--standalone",
+        "--metadata-file=manuscript/metadata.yaml",
+        "--to=html5",
+        "--number-sections",
+        "--resource-path=.",
+        "--bibliography=references.yaml",
+        "--csl=styles/minimal.csl",
+        "--citeproc",
+        "--output=build/manuscript.html",
+        "manuscript/00-intro.md",
+        "manuscript/01-results.md"
+      ],
+      "env": {
+        "FORCE_SOURCE_DATE": "1",
+        "SOURCE_DATE_EPOCH": "1700000000",
+        "TZ": "UTC"
+      },
+      "cwd": ".",
+      "status": 0,
+      "startedAt": "2026-10-24T22:22:21.371Z",
+      "endedAt": "2026-10-24T22:49:11.790Z"
+    },
+    {
+      "format": "docx",
+      "argv": [
+        "pandoc",
+        "--from=markdown",
+        "--standalone",
+        "--metadata-file=manuscript/metadata.yaml",
+        "--to=docx",
+        "--number-sections",
+        "--resource-path=.",
+        "--bibliography=references.yaml",
+        "--csl=styles/minimal.csl",
+        "--citeproc",
+        "--output=build/manuscript.docx",
+        "manuscript/00-intro.md",
+        "manuscript/01-results.md"
+      ],
+      "env": {
+        "FORCE_SOURCE_DATE": "1",
+        "SOURCE_DATE_EPOCH": "1700000000",
+        "TZ": "UTC"
+      },
+      "cwd": ".",
+      "status": 0,
+      "startedAt": "2026-10-24T22:49:12.152Z",
+      "endedAt": "2026-10-24T22:49:31.132Z"
+    }
+  ],
+  "outputs": [
+    {
+      "format": "html",
+      "path": "build/manuscript.html",
+      "ni": "ni:///sha-256;W4gN-9eO86Tajz7JEXzxv2znhoJTar7GwNu3NtTIELo",
+      "bytes": 5284,
+      "mediaType": "text/html",
+      "reproducibility": "byte-identical"
+    },
+    {
+      "format": "docx",
+      "path": "build/manuscript.docx",
+      "ni": "ni:///sha-256;ZDWPWziYoZo9yDQ_gvItS7nwJF0a6etjC7zWEAhRujs",
+      "bytes": 10335,
+      "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "reproducibility": "byte-identical"
+    }
+  ],
+  "provenance": {
+    "agents": [
+      {
+        "id": "pandoc",
+        "name": "pandoc 3.1.3",
+        "kind": "software"
+      }
+    ],
+    "activities": [
+      {
+        "id": "render-html",
+        "label": "pandoc 3.1.3 projection to html",
+        "startedAt": "2026-10-24T22:22:21.371Z",
+        "endedAt": "2026-10-24T22:49:11.790Z",
+        "used": [
+          "manuscript/00-intro.md",
+          "manuscript/01-results.md",
+          "manuscript/metadata.yaml",
+          "references.yaml",
+          "styles/minimal.csl"
+        ],
+        "generated": [
+          "build/manuscript.html"
+        ],
+        "wasAssociatedWith": [
+          {
+            "agent": "pandoc",
+            "role": "renderer"
+          }
+        ]
+      },
+      {
+        "id": "render-docx",
+        "label": "pandoc 3.1.3 projection to docx",
+        "startedAt": "2026-10-24T22:49:12.152Z",
+        "endedAt": "2026-10-24T22:49:31.132Z",
+        "used": [
+          "manuscript/00-intro.md",
+          "manuscript/01-results.md",
+          "manuscript/metadata.yaml",
+          "references.yaml",
+          "styles/minimal.csl"
+        ],
+        "generated": [
+          "build/manuscript.docx"
+        ],
+        "wasAssociatedWith": [
+          {
+            "agent": "pandoc",
+            "role": "renderer"
+          }
+        ]
+      }
+    ],
+    "entities": [
+      {
+        "id": "manuscript/00-intro.md",
+        "path": "manuscript/00-intro.md",
+        "ni": "ni:///sha-256;eA0efDb22qZbiQFRFozOuJ-7ujlYb96kktzP35SG8Es",
+        "bytes": 142,
+        "mediaType": "text/markdown"
+      },
+      {
+        "id": "manuscript/01-results.md",
+        "path": "manuscript/01-results.md",
+        "ni": "ni:///sha-256;ehxAcAg7FWXSbNNKPQzqvkQ8O5Kys-dO5IQyq025m78",
+        "bytes": 65,
+        "mediaType": "text/markdown"
+      },
+      {
+        "id": "manuscript/metadata.yaml",
+        "path": "manuscript/metadata.yaml",
+        "ni": "ni:///sha-256;E60slv2KrSgtpefbrJ_9bYq_ERdvtPekiVOb2QHe8SM",
+        "bytes": 61,
+        "mediaType": "application/yaml"
+      },
+      {
+        "id": "references.yaml",
+        "path": "references.yaml",
+        "ni": "ni:///sha-256;nVMKNMZuV5qrKnhfbFTGUEGv7HUW-6mfEyVGkcKhaL8",
+        "bytes": 383,
+        "mediaType": "application/yaml"
+      },
+      {
+        "id": "styles/minimal.csl",
+        "path": "styles/minimal.csl",
+        "ni": "ni:///sha-256;ixowwzWWd3LAEfIlzCCIK5EqGKu-ktkRzQRp8VoIaRU",
+        "bytes": 1295,
+        "mediaType": "application/vnd.citationstyles.style+xml"
+      },
+      {
+        "id": "build/manuscript.html",
+        "path": "build/manuscript.html",
+        "ni": "ni:///sha-256;W4gN-9eO86Tajz7JEXzxv2znhoJTar7GwNu3NtTIELo",
+        "bytes": 5284,
+        "mediaType": "text/html",
+        "wasDerivedFrom": [
+          "manuscript/00-intro.md",
+          "manuscript/01-results.md",
+          "manuscript/metadata.yaml",
+          "references.yaml",
+          "styles/minimal.csl"
+        ]
+      },
+      {
+        "id": "build/manuscript.docx",
+        "path": "build/manuscript.docx",
+        "ni": "ni:///sha-256;ZDWPWziYoZo9yDQ_gvItS7nwJF0a6etjC7zWEAhRujs",
+        "bytes": 10335,
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "wasDerivedFrom": [
+          "manuscript/00-intro.md",
+          "manuscript/01-results.md",
+          "manuscript/metadata.yaml",
+          "references.yaml",
+          "styles/minimal.csl"
+        ]
+      }
+    ]
+  }
+}

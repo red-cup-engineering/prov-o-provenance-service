@@ -1,0 +1,54 @@
+{
+  "name": "@red-cup-engineering/prov-o-provenance-service",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "description": "Projects a build provenance manifest (agents, activities, ni:-addressed entities, git source records, pandoc build receipts) as W3C PROV-O: canonical Turtle and JSON-LD, file content addresses, and a provenance closure check.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/red-cup-engineering/prov-o-provenance-service.git"
+  },
+  "keywords": ["prov-o", "provenance", "rdf", "turtle", "json-ld", "content-address", "reproducible-builds"],
+  "exports": {
+    ".": "./index.mjs",
+    "./project-provenance-as-prov-o": "./scripts/project-provenance-as-prov-o.mjs",
+    "./compute-file-provenance-entities": "./scripts/compute-file-provenance-entities.mjs",
+    "./check-provenance-closure": "./scripts/check-provenance-closure.mjs",
+    "./provenance-manifest.schema.json": "./data/records/schema/provenance-manifest.schema.json"
+  },
+  "bin": {
+    "project-provenance-as-prov-o": "scripts/project-provenance-as-prov-o.mjs",
+    "compute-file-provenance-entities": "scripts/compute-file-provenance-entities.mjs",
+    "check-provenance-closure": "scripts/check-provenance-closure.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "src",
+    "scripts",
+    "data/records",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@red-cup-engineering/javascript-node-services-section": "0.3.2",
+    "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section": "0.1.4",
+    "@red-cup-engineering/computer-content-address-engineering-services-section": "0.2.0",
+    "@red-cup-engineering/json-schema-services-section": "0.5.0",
+    "@red-cup-engineering/uri-services-section": "0.1.1"
+  },
+  "devDependencies": {
+    "jsonld": "9.0.0"
+  },
+  "engines": {
+    "node": ">=24.2.0"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/561-group/.github/blob/main/TIPS.md"
+  }
+}

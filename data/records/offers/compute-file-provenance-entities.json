@@ -1,0 +1,124 @@
+{
+  "name": "File Provenance Entities",
+  "gateway": "provenance",
+  "gatewayPackageName": "@red-cup-engineering/prov-o-provenance-service",
+  "section": "lib/emsenn/services/561-group/services/engineering-services-section/services/computer-engineering-services-section/services/computer-data-engineering-services-section/services/computer-content-engineering-services-section/services/computer-serialized-content-engineering-services-section/services/computer-triplet-serialized-content-engineering-services-section/services/prov-o-provenance-service",
+  "operation": "compute-file-provenance-entities",
+  "origin": "https://market.561.group",
+  "route": "/v1/compute-file-provenance-entities",
+  "method": "POST",
+  "price": "$0.002",
+  "category": "data",
+  "output": {
+    "schema": {
+      "type": "object",
+      "required": [
+        "ok"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "entities": {
+          "type": "array"
+        },
+        "refusal": {
+          "type": "object"
+        }
+      }
+    },
+    "example": {
+      "ok": true,
+      "entities": [
+        {
+          "id": "manuscript.md",
+          "path": "manuscript.md",
+          "ni": "ni:///sha-256;4BsX_5r3cFZ5L2fFfj0ZCHlbnRrkz-ckIdCig4mRt0A",
+          "bytes": 8,
+          "mediaType": "text/markdown",
+          "wasDerivedFrom": [],
+          "wasAttributedTo": []
+        }
+      ]
+    }
+  },
+  "framings": [
+    {
+      "key": "default",
+      "title": "File Provenance Entities",
+      "description": "Compute the RFC 6920 ni: sha-256 content address, byte size and media type of files given as relative paths and base64 bytes, returned as provenance manifest entities sorted by path.",
+      "tags": [
+        "provenance",
+        "ni",
+        "sha-256",
+        "content-address"
+      ],
+      "serviceName": "compute-file-provenance-entities"
+    }
+  ],
+  "ledgerAccount": "Income:Sales:X402:Provenance",
+  "markets": [
+    "x402-bazaar",
+    "402index",
+    "house-capability-market",
+    "house-seller-catalog"
+  ],
+  "compute": {
+    "package": "@red-cup-engineering/prov-o-provenance-service",
+    "subpath": "./compute-file-provenance-entities",
+    "export": "computeFileProvenanceEntities",
+    "args": [
+      "body"
+    ]
+  },
+  "runtime": "node",
+  "saleStatus": "held",
+  "seller": {
+    "enterprise": "engineering",
+    "entity": "561-group-llc",
+    "record": {
+      "path": "lib/emsenn/services/561-group/services/engineering-services-section/lib/agency/enterprises/engineering.json",
+      "sha256": "6af4ed9d1e4612b0383267e7ffe0ad028c52164ee3c5136110d434384a29c39f"
+    }
+  },
+  "resources": [
+    "CPU: SHA-256 over the supplied bytes"
+  ],
+  "bodyExample": {
+    "files": [
+      {
+        "path": "manuscript.md",
+        "bytesBase64": "IyBUaXRsZQo="
+      }
+    ]
+  },
+  "bodySchema": {
+    "type": "object",
+    "required": [
+      "files"
+    ],
+    "properties": {
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "path",
+            "bytesBase64"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "bytesBase64": {
+              "type": "string"
+            },
+            "mediaType": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

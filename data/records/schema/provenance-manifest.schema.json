@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://561.group/schema/provenance/provenance-manifest.schema.json",
+  "title": "build provenance manifest",
+  "description": "The agents, activities and entities of one build, in the vocabulary of W3C PROV-O. Local ids (agent, activity and entity ids) are resolved by the projection: an id with a URI scheme is used as the IRI verbatim, any other id is minted under baseIri. An entity is always identified by its ni: content address. References from an activity or entity to an entity may name the entity's id or its ni.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agents", "activities", "entities"],
+  "properties": {
+    "baseIri": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s<>\"{}|\\\\^`]*$",
+      "description": "Absolute IRI prefix under which non-IRI agent, activity, role and association ids are minted. Defaults to urn:provenance:."
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "kind"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["person", "software", "organization", "ai-system"] },
+          "actedOnBehalfOf": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The id of the accountable agent. An ai-system or software agent is accountable to a person or organization."
+          }
+        }
+      }
+    },
+    "activities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "startedAt", "endedAt"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "startedAt": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+          },
+          "endedAt": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+          },
+          "plan": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The entity (by id or ni) the associated agents followed: a build script, a Makefile, a prompt. It is typed prov:Plan."
+          },
+          "used": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "generated": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "wasAssociatedWith": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["agent", "role"],
+              "properties": {
+                "agent": { "type": "string", "minLength": 1 },
+                "role": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "ni", "bytes", "mediaType"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "ni": { "type": "string", "pattern": "^ni:///sha-256;[A-Za-z0-9_-]{43}$" },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "mediaType": { "type": "string", "minLength": 1 },
+          "git": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["repository", "revision", "path", "blob"],
+            "properties": {
+              "repository": { "type": "string", "minLength": 1 },
+              "revision": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" },
+              "path": { "type": "string", "minLength": 1 },
+              "blob": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" }
+            }
+          },
+          "wasDerivedFrom": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "wasAttributedTo": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "license": {
+            "type": "string",
+            "minLength": 1,
+            "description": "An SPDX license identifier (becomes https://spdx.org/licenses/<id>), an absolute IRI, or free text (kept as a literal)."
+          }
+        }
+      }
+    }
+  }
+}
