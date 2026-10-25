@@ -1,4 +1,6 @@
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
+import { base64ToBytes } from "@red-cup-engineering/computer-content-address-engineering-services-section/semiotic-content-address";
+import { admitRelativePosixFilepath } from "@red-cup-engineering/computer-filepath-engineering-services-section/admit-relative-posix-filepath";
 import { compare, refusal } from "./manifest.mjs";
 
 const MEDIA_TYPES = Object.freeze({
@@ -17,14 +19,15 @@ export function mediaTypeForPath(path) {
   return MEDIA_TYPES[extension] ?? "application/octet-stream";
 }
 
+/** Whether `path` is a normalized relative POSIX filepath beneath its root (the house filepath admission; a trailing slash names no file). */
 function safePath(path) {
-  return typeof path === "string" && path !== "" && !path.startsWith("/") && !path.includes("\\") && !path.includes("\u0000")
-    && path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+  try { admitRelativePosixFilepath(path); } catch { return false; }
+  return !path.endsWith("/");
 }
 
+/** The bytes of canonical padded base64 text; undefined for anything else (the house `base64ToBytes` decodes). */
 function decodeBase64(text) {
-  if (typeof text !== "string" || !BASE64.test(text)) return undefined;
-  return Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
+  return typeof text === "string" && BASE64.test(text) ? base64ToBytes(text) : undefined;
 }
 
 /**
