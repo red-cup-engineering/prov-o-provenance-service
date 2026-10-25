@@ -18,5 +18,6 @@ export const operationDefinition = {
   outputSchema: resultSchema,
   operation: composeProvenanceManifest,
 };
+export const operation = operationDefinition;
 
 if (import.meta.main) await runCommand(operationDefinition);

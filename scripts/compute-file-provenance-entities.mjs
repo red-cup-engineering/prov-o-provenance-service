@@ -29,5 +29,6 @@ export const operationDefinition = {
   outputSchema: resultSchema,
   operation: computeFileProvenanceEntities,
 };
+export const operation = operationDefinition;
 
 if (import.meta.main) await runCommand(operationDefinition);
