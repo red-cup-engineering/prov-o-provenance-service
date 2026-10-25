@@ -1,0 +1,48 @@
+name: market-offers
+# Autosell, package side. This package declares `package.json#x-market`; on every push to main the house
+# derive-market-offers workflow derives its market offers from the package itself and reconciles them with the live
+# catalog (causeway-services/public-market-services-section data/catalog.json, the `parameters` of market.561.group).
+#
+#   - HOUSE_READ_TOKEN absent (the default for a public repository): nothing runs. The x402 source, the catalog and the
+#     agency records are private; there is nothing to reconcile against.
+#   - HOUSE_READ_TOKEN present, MARKET_CATALOG_TOKEN absent: the reconciled catalog, report and diff are uploaded as the
+#     `derive-market-offers` artifact; no pull request is opened.
+#   - Both present: one pull request per package repository is opened or updated in the catalog repository. It is never
+#     merged by this workflow; merging is the reviewed act that puts offers on sale, and new offers start `held`.
+#
+# Derivation imports the package's own code, so it runs on push, never on pull_request. Pins: the workflow (continuous-
+# delivery-engineering-services-section), the derivation tool (x402-engineering-services-section) and the agency records
+# (engineering-services-section for the enterprise record, the catalog repository for agency-index.json) are exact commits.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      read: ${{ steps.token.outputs.read }}
+    steps:
+      - id: token
+        env:
+          HOUSE_READ_TOKEN: ${{ secrets.HOUSE_READ_TOKEN }}
+        run: |
+          if [ -n "$HOUSE_READ_TOKEN" ]; then echo "read=true" >> "$GITHUB_OUTPUT"
+          else echo "read=false" >> "$GITHUB_OUTPUT"; echo "::notice title=market-offers skipped::HOUSE_READ_TOKEN is not set; the private x402 source, catalog and agency records cannot be read."; fi
+  market:
+    needs: gate
+    if: ${{ needs.gate.outputs.read == 'true' }}
+    uses: red-cup-engineering/continuous-delivery-engineering-services-section/.github/workflows/derive-market-offers.yml@10c12a8113fec98214d4b982c8fee1c591a0383c
+    with:
+      runs-on: '["ubuntu-24.04"]'
+      x402-ref: 611fdfe39486d975771df862c512357d25c4dbc4
+      catalog-repository: causeway-services/public-market-services-section
+      catalog-path: data/catalog.json
+      agency-checkouts: '[{"repository":"red-cup-engineering/engineering-services-section","ref":"f1422ec622d5bf0b6c94ebb3f9416f6c6b077d3d","path":"services/561-group/services/engineering-services-section"},{"repository":"causeway-services/public-market-services-section","ref":"02ea08011d736d10206057ef174da3eeaa774aaf","path":"market"}]'
+      agency-index: market/data/agency-index.json
+    secrets:
+      catalog-token: ${{ secrets.MARKET_CATALOG_TOKEN }}
+      house-read-token: ${{ secrets.HOUSE_READ_TOKEN }}
