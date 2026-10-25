@@ -41,7 +41,7 @@ jobs:
       x402-ref: 611fdfe39486d975771df862c512357d25c4dbc4
       catalog-repository: causeway-services/public-market-services-section
       catalog-path: data/catalog.json
-      agency-checkouts: '[{"repository":"red-cup-engineering/engineering-services-section","ref":"f1422ec622d5bf0b6c94ebb3f9416f6c6b077d3d","path":"services/561-group/services/engineering-services-section"},{"repository":"causeway-services/public-market-services-section","ref":"02ea08011d736d10206057ef174da3eeaa774aaf","path":"market"}]'
+      agency-checkouts: '[{"repository":"red-cup-engineering/engineering-services-section","ref":"f1422ec622d5bf0b6c94ebb3f9416f6c6b077d3d","path":"services/561-group/services/engineering-services-section"},{"repository":"causeway-services/public-market-services-section","ref":"0cab176b779a5599b19b8475445031925371ba85","path":"market"}]'
       agency-index: market/data/agency-index.json
     secrets:
       catalog-token: ${{ secrets.MARKET_CATALOG_TOKEN }}
