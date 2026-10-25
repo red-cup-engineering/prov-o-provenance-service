@@ -1,6 +1,7 @@
 import { iriTerm, literal } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-terms";
 import { nquadLine } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/n-quads";
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
+import { compactStatementsAsJsonLd } from "@red-cup-engineering/json-ld-services-section/json-ld";
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
 import { admitManifest, compare, indexManifest, mintIri, refusal } from "./manifest.mjs";
 import { provenanceGaps } from "./closure.mjs";
@@ -108,34 +109,10 @@ export function provStatements(manifest) {
 }
 
 const PREFIXES = [["dcterms", DCTERMS], ["prov", PROV], ["rdfs", RDFS], ["xsd", XSD]];
-function compact(iri) {
-  for (const [prefix, namespace] of PREFIXES) if (iri.startsWith(namespace) && iri.length > namespace.length) return `${prefix}:${iri.slice(namespace.length)}`;
-  return iri;
-}
 
-/** JSON-LD (compacted with the four-prefix context) for the same statements; nodes and values sorted. */
+/** JSON-LD (compacted with the four-prefix context) for the same statements; nodes and values sorted. Written by json-ld-services-section. */
 export function provJsonLd(statements) {
-  const nodes = new Map();
-  for (const { subject, predicate, object } of statements) {
-    if (!nodes.has(subject)) nodes.set(subject, new Map());
-    const properties = nodes.get(subject);
-    const key = predicate === RDF_TYPE ? "@type" : compact(predicate);
-    const value = predicate === RDF_TYPE ? compact(object.value)
-      : object.kind === "iri" ? { "@id": object.value }
-        : object.datatype === undefined && object.language === undefined ? object.value
-          : { "@value": object.value, ...(object.datatype === undefined ? { "@language": object.language } : { "@type": compact(object.datatype) }) };
-    if (!properties.has(key)) properties.set(key, new Map());
-    properties.get(key).set(JSON.stringify(value), value);
-  }
-  const graph = [...nodes.keys()].sort(compare).map((id) => {
-    const node = { "@id": id };
-    for (const key of [...nodes.get(id).keys()].sort(compare)) {
-      const values = [...nodes.get(id).get(key).entries()].sort(([a], [b]) => compare(a, b)).map(([, value]) => value);
-      node[key] = values.length === 1 ? values[0] : values;
-    }
-    return node;
-  });
-  return { "@context": Object.fromEntries(PREFIXES), "@graph": graph };
+  return compactStatementsAsJsonLd(statements, { prefixes: PREFIXES });
 }
 
 /**
