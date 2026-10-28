@@ -1,4 +1,5 @@
-import { admitManifest, compare, indexManifest } from "./manifest.mjs";
+import { admitManifest, compare, indexManifest, refusal } from "./manifest.mjs";
+import { analyzeAdmittedProvenanceRevision } from "./revision-impact.mjs";
 
 const error = (kind, subject, message, reference) => ({ kind, severity: "error", subject, ...(reference === undefined ? {} : { reference }), message });
 const warning = (kind, subject, message, reference) => ({ kind, severity: "warning", subject, ...(reference === undefined ? {} : { reference }), message });
@@ -122,4 +123,24 @@ export function checkProvenanceClosure(manifest) {
   const admitted = admitManifest(manifest);
   if (!admitted.ok) return admitted;
   return Object.freeze({ ok: true, ...provenanceGaps(admitted.manifest) });
+}
+
+/**
+ * Compare two source-closed PROV-O manifest editions with stable logical IDs.
+ * Only signals downstream objects requiring scientific review; does not prove false claims.
+ * Uses the existing schema admission and closure checks before graph traversal.
+ */
+export function assessProvenanceRevisionImpact({ previous, current } = {}) {
+  const earlier = admitManifest(previous);
+  if (!earlier.ok) return refusal("InvalidPreviousManifest", earlier.refusal.message);
+  const later = admitManifest(current);
+  if (!later.ok) return refusal("InvalidCurrentManifest", later.refusal.message);
+  if (earlier.manifest.baseIri !== later.manifest.baseIri) {
+    return refusal("IncompatibleManifestBases", "manifest editions do not share the same logical entity namespace");
+  }
+  for (const [edition, manifest] of [["previous", earlier.manifest], ["current", later.manifest]]) {
+    const closure = provenanceGaps(manifest);
+    if (!closure.closed) return refusal("ProvenanceNotClosed", edition + " manifest contains unresolved provenance", { edition, gaps: closure.gaps.filter(g => g.severity === "error") });
+  }
+  return analyzeAdmittedProvenanceRevision(earlier.manifest, later.manifest);
 }

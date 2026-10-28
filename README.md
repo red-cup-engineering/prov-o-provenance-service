@@ -8,7 +8,7 @@
 
 Turns the provenance a build already holds — `ni:` content addresses, git source
 records, who did what and when — into W3C PROV-O (`http://www.w3.org/ns/prov#`),
-as canonical Turtle and JSON-LD. Three operations over one input, the **build
+as canonical Turtle and JSON-LD. The original operations use one input, the **build
 provenance manifest** (`data/records/schema/provenance-manifest.schema.json`):
 
 ```jsonc
@@ -107,6 +107,31 @@ export function checkProvenanceClosure(manifest)
 - Effect class: pure.
 - Witness: each gap names the subject and reference that break closure.
 - Command: `check-provenance-closure` reads one manifest per line.
+
+## assessProvenanceRevisionImpact
+
+The fourth original-PROV operation compares **two editions of the same source-closed manifest**. It reuses exactly the existing `provenance-manifest.schema.json` admission, PROV-O entity/Activity identities, and `checkProvenanceClosure` semantics rather than constructing a new knowledge graph.
+
+```sh
+# JSON input: {"previous": <manifest edition 1>, "current": <manifest edition 2>}
+# Emits one exact JSON result/refusal per line.
+node scripts/assess-provenance-revision-impact.mjs < two-editions.ndjson
+# The pure, dependency-free graph-screening controls:
+node --test test/revision-impact.test.mjs
+# With original published dependencies available, the native admission tests:
+node --test test/revision-impact-admission.test.mjs
+```
+
+- **Preconditions:** both input editions are independently valid and closed under this package's existing checker, use the same `baseIri` and preserve stable logical entity IDs across editions. A changed `ni:` means changed source *bytes*, not that a scientific conclusion has been falsified. If a logical ID is changed, the operation reports one removed and one added entity rather than silently assuming sameness.
+- **Exact detection:** added/removed entities, changed `ni:` byte addresses, rights/attribution/Git metadata changes, changed dependency edges, changed generating activities, and changed accountable agents. Both editions' direct `prov:wasDerivedFrom` dependencies and `prov:used`/generation (including an activity's plan) generate the **union dependency graph**. It screens transitive reachable descendants; an unchanged downstream `ni:` is reported as a *possible stale artifact requiring independent review*.
+- **Result:** deterministic `directChanges`, `changedActivities`, `changedAgents`, `affected` with one explicit shortest witness path and edge kinds, `potentiallyStaleUnchanged`, counts, a typed refusal on incompatible/incomplete inputs, and an epistemic-status boundary. This is a conservative impact *candidate*, not content invalidation, an event subscription, a fresh Web acquisition, a human author decision or a publication effect. All activity outputs may be conservatively affected by any of that activity's inputs; the actual dependency can be narrower.
+- **Bounds:** at most 10,000 entities, 5,000 activities, 10,000 agents per edition and 200,000 distinct source→target edges in the union graph. This keeps the source-level tool bounded without imposing these artificial limits on the underlying scientific truth or richer external research designs.
+
+**Two real disciplinary input shapes:** The [Astronomy Science 2026 lunar-reference object](https://github.com/lenticule-science/astronomy-science-services-section/pull/13) has an external computed-almanac CSV, model calculations and a research note. A future *genuine* change to that pinned CSV must re-open its dependent calculation and conclusions; the test's artificial changed source is only an injected control, **not evidence that the USNO table changed**. In [Sociology Science's documentary evidence register](https://github.com/lenticule-science/sociology-science-services-section/blob/main/data/records/radical-political-learning-evidence-2026-10-15.json), one source document S22 underlies episodes E02 and E03: a revision to the same documentary source may affect both source-derived records. Two episodes do **not** thereby constitute two independent corroborating documents. These two domain examples are checked in `test/revision-impact.test.mjs`; the real scientific sources stay in their disciplinary owners.
+
+**Prior art:** W3C [PROV-O](https://www.w3.org/TR/prov-o/) already specifies derivation, usage, generation, plan and responsibility. This operation contributes only the **deterministic, bounded revision-impact screening rule** over our existing manifests. It does not claim to invent provenance graph reachability, epistemic uncertainty or a new formal closure theory. Research objects can continue to be packaged under [RO-Crate](https://www.researchobject.org/ro-crate/specification) while source manifests remain the underlying computational witness. Future consumers should route changed source IDs to their original Science/SignChain claim-owner, not introduce a second annotation registry or claim that a passing structural screen certifies science.
+
+**Economic boundary:** This is an independently callable original Engineering operation and a candidate supplier for research commissions through the *existing* Curiosity Research Market and `market.561.group`. Neither adding an executable nor changing a package version admits a price, customer, verified settlement, installed host or lawful redistribution of upstream sources.
 
 ## Invocation
 
