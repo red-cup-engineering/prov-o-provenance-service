@@ -30,6 +30,10 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
   if ([previous, current].some(m => m.entities.length > 10_000 || m.activities.length > 5_000 || m.agents.length > 10_000)) {
     return { ok: false, refusal: { reason: "ImpactBudgetExceeded", message: "manifest count exceeds conservative impact bounds" } };
   }
+  const estimatedEdges = [previous, current].reduce((count, manifest) => count +
+    manifest.entities.reduce((n, item) => n + (item.wasDerivedFrom ?? []).length, 0) +
+    manifest.activities.reduce((n, activity) => n + ((activity.used ?? []).length + (activity.plan ? 1 : 0)) * (activity.generated ?? []).length, 0), 0);
+  if (estimatedEdges > 200_000) return { ok: false, refusal: { reason: "ImpactBudgetExceeded", message: "potential dependency edges exceed conservative impact bounds" } };
   const old = mapById(previous.entities), now = mapById(current.entities);
   const oldActs = mapById(previous.activities), nowActs = mapById(current.activities);
   const oldAgents = mapById(previous.agents), nowAgents = mapById(current.agents);
