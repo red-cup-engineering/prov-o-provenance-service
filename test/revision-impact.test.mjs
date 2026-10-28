@@ -95,3 +95,11 @@ test("bad inputs and over-budget graphs refuse", () => {
   const huge = manifest(Array.from({ length: 10001 }, (_, i) => entity("x" + i, String(i))));
   assert.equal(impact(huge, manifest([])).refusal.reason, "ImpactBudgetExceeded");
 });
+
+test("oversized usage-to-generation products refuse before quadratic graph construction", () => {
+  const source = Array.from({ length: 500 }, (_, i) => entity("s" + i, "s" + i));
+  const targets = Array.from({ length: 500 }, (_, i) => entity("t" + i, "t" + i));
+  const huge = manifest([...source, ...targets],
+    [activity("dense", source.map(x => x.id), targets.map(x => x.id))]);
+  assert.equal(impact(huge, manifest([])).refusal.reason, "ImpactBudgetExceeded");
+});
