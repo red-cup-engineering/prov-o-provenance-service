@@ -1,0 +1,29 @@
+name: Source revision-impact conformance
+on:
+  pull_request:
+    paths:
+      - 'src/revision-impact.mjs'
+      - 'test/revision-impact.test.mjs'
+      - '.github/workflows/revision-impact.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/revision-impact.mjs'
+      - 'test/revision-impact.test.mjs'
+      - '.github/workflows/revision-impact.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-impact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check pure source and adversarial domain controls
+        run: |
+          node --check src/revision-impact.mjs
+          node --test test/revision-impact.test.mjs
