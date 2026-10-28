@@ -1,6 +1,6 @@
 {
   "name": "@red-cup-engineering/prov-o-provenance-service",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "private": false,
   "license": "MIT",
@@ -23,6 +23,7 @@
     "./project-provenance-as-prov-o": "./scripts/project-provenance-as-prov-o.mjs",
     "./compute-file-provenance-entities": "./scripts/compute-file-provenance-entities.mjs",
     "./check-provenance-closure": "./scripts/check-provenance-closure.mjs",
+    "./assess-provenance-revision-impact": "./scripts/assess-provenance-revision-impact.mjs",
     "./provenance-manifest.schema.json": "./data/records/schema/provenance-manifest.schema.json",
     "./compose-provenance-manifest": "./scripts/compose-provenance-manifest.mjs"
   },
@@ -30,6 +31,7 @@
     "project-provenance-as-prov-o": "scripts/project-provenance-as-prov-o.mjs",
     "compute-file-provenance-entities": "scripts/compute-file-provenance-entities.mjs",
     "check-provenance-closure": "scripts/check-provenance-closure.mjs",
+    "assess-provenance-revision-impact": "scripts/assess-provenance-revision-impact.mjs",
     "compose-provenance-manifest": "scripts/compose-provenance-manifest.mjs"
   },
   "files": [
