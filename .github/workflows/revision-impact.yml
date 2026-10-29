@@ -36,7 +36,10 @@ jobs:
           node --check src/revision-impact.mjs
           node --test test/revision-impact.test.mjs
       - name: Install original published package dependency closure
-        run: npm ci --no-audit --no-fund
+        # One bounded, no-retry receiving attempt: house scope tarball requests
+        # must not stampede the original registry after observed HTTP 429.
+        # Every dependency still comes from the exact integrity-pinned lockfile.
+        run: npm ci --no-audit --no-fund --maxsockets=1 --fetch-retries=0
       - name: Verify native schema, source-use RDF/JSON-LD, composition and all original tests
         run: npm test
       - name: Verify redistributable package includes the pinned official source vocabulary
