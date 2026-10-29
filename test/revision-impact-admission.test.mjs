@@ -63,3 +63,48 @@ test("native provenance admission preserves external use notice revisions and re
     }).refusal.reason, "InvalidCurrentManifest", key);
   }
 });
+
+test("two separate owners of identical bytes must not let declaration order hide affected scientific work", () => {
+  // Reproduces the original provenance impact false-negative: identical
+  // bytes occur in an owning Science CSV and an Engineering mirror, with
+  // distinct logical ids but the same NI. A downstream derivation by bare
+  // NI used to select the last declaration in the impact reader, whereas
+  // the closure reader selected the first.
+  const previous = old();
+  const original = previous.entities[0];
+  previous.entities.splice(1, 0, {
+    ...structuredClone(original), id: "engineering-mirror",
+    path: "engineer/reference.csv",
+  });
+  previous.activities[0].used = [original.ni];
+  previous.entities[2].wasDerivedFrom = [original.ni];
+  const changed = structuredClone(previous);
+  changed.entities[0].rights = "Source use now calls for reassessment";
+  for (const order of [false, true]) {
+    const earlier = structuredClone(previous), later = structuredClone(changed);
+    if (order) { earlier.entities.reverse(); later.entities.reverse(); }
+    const screened = assessProvenanceRevisionImpact({ previous: earlier, current: later });
+    assert.equal(screened.ok, false);
+    assert.equal(screened.refusal.reason, "ProvenanceNotClosed");
+    assert.equal(screened.refusal.edition, "previous");
+    assert.ok(screened.refusal.gaps.some(gap => gap.kind === "ambiguous-content-address-reference"),
+      "the impacted paper must not disappear merely because sources were reordered");
+  }
+});
+
+test("rights metadata from two equal-byte source occurrences cannot be projected as one unqualified license", () => {
+  const previous = old();
+  previous.entities.push({ ...structuredClone(previous.entities[0]),
+    id: "same-bytes-second-source", path: "another-source/reference.csv",
+    license: "MIT", rights: "Different original source permission" });
+  const r = assessProvenanceRevisionImpact({ previous, current: old() });
+  assert.equal(r.ok, false);
+  assert.equal(r.refusal.reason, "ProvenanceNotClosed");
+  assert.ok(r.refusal.gaps.some(gap => gap.kind === "shared-content-rights-conflict"));
+  // Removing the unqualified conflicting assertions restores admission of
+  // distinct occurrence ids when all actual dependencies use logical IDs.
+  delete previous.entities.at(-1).license;
+  delete previous.entities.at(-1).rights;
+  const fixed = assessProvenanceRevisionImpact({ previous, current: old() });
+  assert.equal(fixed.ok, true, JSON.stringify(fixed.refusal));
+});

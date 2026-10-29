@@ -178,6 +178,52 @@ test("closure: warnings do not open the record", () => {
   assert.deepEqual(kinds(result), ["warning:ai-system-without-accountable-agent", "warning:derivation-not-used-by-generator", "warning:plan-without-association"]);
 });
 
+test("duplicate bytes keep a distinct logical source only when rights testimony is consistent", async () => {
+  const manifest = buildManifest();
+  const original = entityNamed(manifest, "references.yaml");
+  manifest.entities.push({ ...clone(original), id: "other-repository/references.yaml",
+    path: "other-repository/references.yaml" });
+  const closed = checkProvenanceClosure(manifest);
+  assert.equal(closed.closed, true);
+  assert.ok(closed.gaps.some(gap => gap.kind === "entity-address-shared" && gap.severity === "warning"));
+  const projected = await projectProvenanceAsProvO(manifest);
+  assert.equal(projected.ok, true);
+  // A source occurrence's rights must NOT become a second contradictory
+  // license on the same content-identity RDF subject.
+  entityNamed(manifest, "other-repository/references.yaml").license = "MIT";
+  const tested = checkProvenanceClosure(manifest);
+  assert.equal(tested.closed, false);
+  assert.ok(tested.gaps.some(gap => gap.kind === "shared-content-rights-conflict" && gap.severity === "error"));
+  const refused = await projectProvenanceAsProvO(manifest);
+  assert.equal(refused.refusal.reason, "ProvenanceNotClosed");
+  assert.ok(refused.refusal.gaps.some(gap => gap.kind === "shared-content-rights-conflict"));
+});
+
+test("all four original dependency positions refuse an NI that ambiguously names two source occurrences", async () => {
+  const manifest = buildManifest();
+  const original = entityNamed(manifest, "references.yaml");
+  manifest.entities.push({ ...clone(original), id: "another-source", path: "other/references.yaml" });
+  const positions = [
+    trial => { trial.activities[0].used = [original.ni]; },
+    trial => { trial.activities[0].generated = [original.ni]; },
+    trial => { trial.activities[1].plan = original.ni; },
+    trial => { entityNamed(trial, "build/manuscript.html").wasDerivedFrom.push(original.ni); },
+  ];
+  for (const position of positions) {
+    const trial = clone(manifest);
+    position(trial);
+    const checked = checkProvenanceClosure(trial);
+    assert.equal(checked.closed, false);
+    assert.ok(checked.gaps.some(gap => gap.kind === "ambiguous-content-address-reference" &&
+      gap.reference === original.ni), "original NI dependency must not silently select a source");
+    assert.equal((await projectProvenanceAsProvO(trial)).refusal.reason, "ProvenanceNotClosed");
+    const reordered = clone(trial);
+    reordered.entities.reverse();
+    assert.deepEqual(checkProvenanceClosure(reordered).gaps, checked.gaps,
+      "declaration order may not change source ambiguity classification");
+  }
+});
+
 test("projection refuses a manifest that is not closed, naming the gaps", async () => {
   const manifest = buildManifest();
   manifest.activities[0].used.push("missing.md");

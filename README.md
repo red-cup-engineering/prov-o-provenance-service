@@ -100,7 +100,7 @@ export function checkProvenanceClosure(manifest)
 
 - Returns `{ok: true, closed, gaps, summary: {agents, activities, entities, roots, errors, warnings}}`. `closed` holds when no gap has severity `error`. `roots` are entities no activity generated (the inputs).
 - Refusals: `InvalidManifest`.
-- Error gaps: `derived-entity-without-generating-activity`, `used-entity-undeclared`, `generated-entity-undeclared`, `derivation-unresolved`, `attribution-agent-undeclared`, `association-agent-undeclared`, `delegation-agent-undeclared`, `plan-undeclared`, `duplicate-id`, `derivation-cycle`, `delegation-cycle`, `activity-ends-before-start`, `activity-time-invalid`.
+- Error gaps: `derived-entity-without-generating-activity`, `used-entity-undeclared`, `generated-entity-undeclared`, `derivation-unresolved`, `attribution-agent-undeclared`, `association-agent-undeclared`, `delegation-agent-undeclared`, `plan-undeclared`, `duplicate-id`, `derivation-cycle`, `delegation-cycle`, `activity-ends-before-start`, `activity-time-invalid`, `ambiguous-content-address-reference`, `shared-content-rights-conflict`.
 - Warning gaps: `derivation-not-used-by-generator`, `entity-generated-by-multiple-activities`, `entity-address-shared`, `plan-without-association`, `ai-system-without-accountable-agent`.
 - Precondition: the manifest conforms to the schema.
 - Postcondition: every gap is listed, sorted by `(kind, subject, reference)`; the same manifest gives the same list.
@@ -167,6 +167,53 @@ acquisition, chronology, community rights, competent scientific receiving
 and publication authority are separate gates. The original `compose`
 operation refuses conflicting rights scalars for one entity ID instead of
 silently overwriting the earlier declaration.
+
+## Source occurrence vs. content identity: ambiguity is a refusal
+
+The existing `ni:///sha-256;` identity names **content bytes**, not a
+unique observation, publication, Git source path, consent decision or
+rights-bearing source *occurrence*. For example, the original Lenticule
+Astronomy USNO reference CSV and the byte-identical Red Cup reproduction
+fixture are two original logical source files; their equal bytes cannot
+by themselves establish independent source testimony. A research output
+depending on one must retain that particular original manifest entity
+`id`, its provenance and required source-use rights.
+
+This original manifest already permits distinct entity ids with the same
+NI and reports `entity-address-shared` as a warning: **that is preserved**.
+But a dependency specified only by a shared NI is *under-specified*.
+The native closure and projection now refuse it as
+`ambiguous-content-address-reference` in `used`, `generated`,
+`plan` and `wasDerivedFrom`. Use the **actual logical entity id**
+instead of letting one reader select the first matching source and a
+different revision-impact reader select the last. This is particularly
+important when a source's rights change while the copied bytes do not.
+The original impact wrapper refuses an ambiguous edition before reporting
+`no-affected-entities-detected`, so input order cannot suppress a
+re-evaluation.
+
+Because the original PROV-O projector uses the NI itself as an RDF
+`prov:Entity` subject, two logically distinct declarations with the
+same NI cannot safely emit **different** `license`, `rights`,
+`usageInfo` or `creditText` assertions onto that one subject. Such
+editions refuse with `shared-content-rights-conflict`; an omitted
+grant is not equivalent to a granted license. Same-byte declarations
+with **compatible** rights metadata and exclusively **explicit logical
+id** dependency references remain admitted, with the original
+`entity-address-shared` warning. This does not establish that two
+copies are independent corroborating evidence or identify rights at an
+unarchived upstream URL. Fully distinct source-occurrence attribution
+requires its competent source owner and a qualified provenance
+representation, not a fabricated extra content hash.
+
+This fixes a demonstrated *order-dependent false-negative* in the
+existing revision-impact screen: two original logical source ids
+sharing one NI could change an attribution/rights assertion, while a
+derived paper referring to that NI was either flagged or missed
+depending solely on declaration order. The existing closure/impact
+and PROV-O operations now fail closed before making either claim.
+No second provenance graph, Source/Claim registry, inference of
+truth, retraction, license grant, or publication authority is created.
 
 ## Invocation
 
