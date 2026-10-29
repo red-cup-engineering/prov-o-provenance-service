@@ -19,7 +19,7 @@ provenance manifest** (`data/records/schema/provenance-manifest.schema.json`):
                    "wasAssociatedWith": [{ "agent", "role" }] }],
   "entities":   [{ "id", "path", "ni", "bytes", "mediaType",
                    "git"?: { "repository", "revision", "path", "blob" },
-                   "wasDerivedFrom": [], "wasAttributedTo": [], "license"? }]
+                   "wasDerivedFrom": [], "wasAttributedTo": [], "license"?, "rights"?, "usageInfo"?, "creditText"? }]
 }
 ```
 
@@ -64,6 +64,7 @@ Mapping:
 | entity | `prov:Entity` at its `ni:` IRI; `rdfs:label` path; `dcterms:format`; `dcterms:extent`; `dcterms:license` (SPDX id becomes `https://spdx.org/licenses/<id>`) |
 | `entity.git` | `dcterms:identifier "git:blob:<blob>"`; `dcterms:source` `<https://github.com/<repository>/blob/<revision>/<path>>` when the repository is `owner/name` or an https URL |
 | `wasDerivedFrom` / `wasAttributedTo` | `prov:wasDerivedFrom` / `prov:wasAttributedTo` |
+| `rights`, `usageInfo`, `creditText` | `dcterms:rights` (literal), `schema:usageInfo` (URL), `schema:creditText` (literal), independently of `dcterms:license`; `schema` prefix only appears where used |
 | activity | `prov:Activity`; `prov:startedAtTime`, `prov:endedAtTime` (`xsd:dateTime`); `prov:used`; `prov:wasGeneratedBy` on each generated entity |
 | association | `prov:wasAssociatedWith` and a qualified `prov:Association` (`prov:agent`, `prov:hadRole` to a `prov:Role`, `prov:hadPlan` to the activity's `plan`, which is typed `prov:Plan`) |
 | agent `person` / `organization` | `prov:Person` / `prov:Organization` (and `prov:Agent`) |
@@ -79,7 +80,7 @@ Not mapped: qualified usage and generation, `prov:wasInformedBy`, bundles.
 ### computeFileProvenanceEntities
 
 ~~~js
-export function computeFileProvenanceEntities({ files: [{ path, bytesBase64, mediaType?, id?, git?, license?, wasDerivedFrom?, wasAttributedTo? }] })
+export function computeFileProvenanceEntities({ files: [{ path, bytesBase64, mediaType?, id?, git?, license?, rights?, usageInfo?, creditText?, wasDerivedFrom?, wasAttributedTo? }] })
 ~~~
 
 - Returns `{ok: true, entities}`: manifest entities `{id, path, ni, bytes, mediaType, ...}` sorted by path (`id` defaults to the path; media type to the extension's, else `application/octet-stream`).
@@ -123,7 +124,7 @@ node --test test/revision-impact-admission.test.mjs
 ```
 
 - **Preconditions:** both input editions are independently valid and closed under this package's existing checker, use the same `baseIri` and preserve stable logical entity IDs across editions. A changed `ni:` means changed source *bytes*, not that a scientific conclusion has been falsified. If a logical ID is changed, the operation reports one removed and one added entity rather than silently assuming sameness.
-- **Exact detection:** added/removed entities, changed `ni:` byte addresses, rights/attribution/Git metadata changes, changed dependency edges, changed generating activities, and changed accountable agents. Both editions' direct `prov:wasDerivedFrom` dependencies and `prov:used`/generation (including an activity's plan) generate the **union dependency graph**. It screens transitive reachable descendants; an unchanged downstream `ni:` is reported as a *possible stale artifact requiring independent review*.
+- **Exact detection:** added/removed entities, changed `ni:` byte addresses, separately changed `license`, `rights`, `usageInfo`, `creditText`, attribution/Git metadata, changed dependency edges, changed generating activities, and changed accountable agents. Both editions' direct `prov:wasDerivedFrom` dependencies and `prov:used`/generation (including an activity's plan) generate the **union dependency graph**. It screens transitive reachable descendants; an unchanged downstream `ni:` is reported as a *possible stale artifact requiring independent review*.
 - **Result:** deterministic `directChanges`, `changedActivities`, `changedAgents`, `affected` with one explicit shortest witness path and edge kinds, `potentiallyStaleUnchanged`, counts, a typed refusal on incompatible/incomplete inputs, and an epistemic-status boundary. This is a conservative impact *candidate*, not content invalidation, an event subscription, a fresh Web acquisition, a human author decision or a publication effect. All activity outputs may be conservatively affected by any of that activity's inputs; the actual dependency can be narrower.
 - **Bounds:** at most 10,000 entities, 5,000 activities, 10,000 agents per edition and 200,000 distinct source→target edges in the union graph. This keeps the source-level tool bounded without imposing these artificial limits on the underlying scientific truth or richer external research designs.
 
@@ -132,6 +133,40 @@ node --test test/revision-impact-admission.test.mjs
 **Prior art:** W3C [PROV-O](https://www.w3.org/TR/prov-o/) already specifies derivation, usage, generation, plan and responsibility. This operation contributes only the **deterministic, bounded revision-impact screening rule** over our existing manifests. It does not claim to invent provenance graph reachability, epistemic uncertainty or a new formal closure theory. Research objects can continue to be packaged under [RO-Crate](https://www.researchobject.org/ro-crate/specification) while source manifests remain the underlying computational witness. Future consumers should route changed source IDs to their original Science/SignChain claim-owner, not introduce a second annotation registry or claim that a passing structural screen certifies science.
 
 **Economic boundary:** This is an independently callable original Engineering operation and a candidate supplier for research commissions through the *existing* Curiosity Research Market and `market.561.group`. Neither adding an executable nor changing a package version admits a price, customer, verified settlement, installed host or lawful redistribution of upstream sources.
+
+## Source-use testimony and scientific rights
+
+An entity's `license` remains the existing explicit grant field. The distinct
+optional `rights` (source-qualified text), `usageInfo` (actual HTTP(S) usage
+notice URL) and `creditText` (attribution text) have separate meanings.
+The original manifest schema admits these source fields; the existing file
+entity operation retains them; the original PROV-O projection emits
+`dcterms:rights`, `schema:usageInfo` and `schema:creditText`, without
+manufacturing a `dcterms:license`. Unchanged manifests keep the previously
+reviewed four-prefix JSON-LD context; `schema` is emitted only for manifests
+actually using that namespace. For the exact bytes/identity, retain the
+existing `ni:` content hash independently.
+
+This is motivated by [Lenticule Astronomy's 2026 USNO reference custody](https://github.com/lenticule-science/astronomy-science-services-section/pull/16).
+The official [USNO website notice](https://aa.usno.navy.mil/about/PrivacyNotice)
+permits distributing/copying site information unless otherwise specified
+and requests appropriate credits. It does not by itself license the Group's
+transcription, prove rights for undisclosed third-party material, or attest
+a timestamp. Astronomy's PROV-O source node is an external USNO page **whose
+HTML bytes were not archived**; the Group's hashed CSV is a distinct derived
+entity. Do not invent a `ni:` for the unarchived external page or conflate
+its source-use notice with a license for the CSV.
+
+A **hypothetical** later change to a rights statement, usage notice link or
+credit, even with the same `ni:` bytes, makes an entity a direct reassessment
+candidate in the existing `assessProvenanceRevisionImpact` graph. Its
+`prov:wasDerivedFrom` and activity edges conservatively propagate the
+candidate to derived research objects. This neither certifies that an external
+notice really changed nor authenticates its provenance: independent source
+acquisition, chronology, community rights, competent scientific receiving
+and publication authority are separate gates. The original `compose`
+operation refuses conflicting rights scalars for one entity ID instead of
+silently overwriting the earlier declaration.
 
 ## Invocation
 
