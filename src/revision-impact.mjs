@@ -28,7 +28,7 @@ const stableActivity = (a) => canonical({
 function refuse(message) { return { ok: false, refusal: { reason: "ImpactInputInvalid", message } }; }
 
 /** Call only AFTER both source manifests pass original schema/closure admission. */
-export function analyzeAdmittedProvenanceRevision(previous, current) {
+export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks = [] } = {}) {
   if (![previous, current].every(m => m && Array.isArray(m.entities) && Array.isArray(m.activities) && Array.isArray(m.agents))) {
     return refuse("both inputs must be admitted PROV manifest objects");
   }
@@ -78,6 +78,13 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
     if (!direct.has(id)) direct.set(id, new Set());
     direct.get(id).add(reason);
   }
+  if (!Array.isArray(rechecks) || rechecks.length > 128 ||
+      rechecks.some(x => !x || !old.has(x.entityId) || !now.has(x.entityId) ||
+        typeof x.propositionAddress !== "string")) {
+    return refuse("recheck bindings must name stable original PROV entity ids");
+  }
+  const orderedRechecks = [...rechecks].sort((a,b) =>
+    cmp(a.propositionAddress,b.propositionAddress) || cmp(a.entityId,b.entityId));
   const ids = [...new Set([...old.keys(), ...now.keys()])].sort(cmp);
   for (const id of ids) {
     const prior = old.get(id), latest = now.get(id);
@@ -90,6 +97,9 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
       if (canonical(before) !== canonical(after)) addReason(id, "incoming-dependency-changed");
     }
   }
+  // These are caller-mapped SignChain comparisons, not asserted entity revisions.
+  // The same existing PROV dependency graph performs all downstream traversal.
+  for (const { entityId } of orderedRechecks) addReason(entityId, "signchain-original-evidence-recheck");
   const changedActivities = [...new Set([...oldActs.keys(), ...nowActs.keys()])]
     .filter(id => canonical(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== canonical(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(cmp);
   const changedAgents = [...new Set([...oldAgents.keys(), ...nowAgents.keys()])]
@@ -149,9 +159,10 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
     ok: true, type: "ProvenanceRevisionImpact", version: 1,
     disposition: seeds.length ? "candidate-reassessment-needed" : "no-affected-entities-detected",
     directChanges, changedActivities, changedAgents, responsibilityAffectedAgents: list(responsibilityAffected),
+    reverificationBindings: orderedRechecks,
     affected, potentiallyStaleUnchanged: affected.filter(a => !a.direct && a.unchangedBytes).map(a => a.id),
     summary: { previousEntities: old.size, currentEntities: now.size, changedDirectly: seeds.length,
       candidateImpacts: affected.length, unchangedDependentCandidates: affected.filter(a => !a.direct && a.unchangedBytes).length },
-    boundary: "Conservative PROV derivation/activity influence; bytes or lineage changed, not a false claim or legally authorized disclosure. Human or independent scientific reassessment remains required.",
+    boundary: "Conservative PROV dependency influence or caller-declared original-evidence recheck; cannot authenticate a SignChain source, witness clock or proposition-to-entity binding, and cannot prove a false claim, legal disclosure right or research settlement. Independent scientific reassessment remains required.",
   };
 }
