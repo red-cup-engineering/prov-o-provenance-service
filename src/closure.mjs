@@ -66,15 +66,20 @@ export function provenanceGaps(manifest) {
         `the same content address has differing license, rights, usageInfo or creditText; RDF projection would conflate source-specific testimony`));
     }
   }
+  const isAmbiguousNiReference = reference => sharedNi.has(reference) && !index.entitiesById.has(reference);
   const checkSourceReference = (reference, subject) => {
     // A uniquely named logical ID is qualified even when another file has
     // the same bytes. Bare NI lookup is not: indexManifest's first match and
     // the historical impact reader's last match could disagree by row order.
-    if (sharedNi.has(reference) && !index.entitiesById.has(reference)) {
+    if (isAmbiguousNiReference(reference)) {
       const ids = declarationsByNi.get(reference).map(item => item.id).sort(compare);
       gaps.push(error("ambiguous-content-address-reference", subject,
         `content address matches multiple logical source identities (${ids.join(", ")}); use an exact entity id rather than an ambiguous ni: reference`, reference));
+      // Already refused: no secondary finding may depend on choosing a
+      // first/last matching source behind the caller's back.
+      return false;
     }
+    return true;
   };
 
   const generatedBy = new Map();
@@ -83,11 +88,11 @@ export function provenanceGaps(manifest) {
     if (!Number.isFinite(started) || !Number.isFinite(ended)) gaps.push(error("activity-time-invalid", activity(item.id), "startedAt or endedAt is not a real instant"));
     else if (ended < started) gaps.push(error("activity-ends-before-start", activity(item.id), `endedAt ${item.endedAt} precedes startedAt ${item.startedAt}`));
     for (const reference of item.used) {
-      checkSourceReference(reference, activity(item.id));
+      if (!checkSourceReference(reference, activity(item.id))) continue;
       if (index.entity(reference) === undefined) gaps.push(error("used-entity-undeclared", activity(item.id), `activity uses ${reference}, which no entity declares`, reference));
     }
     for (const reference of item.generated) {
-      checkSourceReference(reference, activity(item.id));
+      if (!checkSourceReference(reference, activity(item.id))) continue;
       const found = index.entity(reference);
       if (found === undefined) { gaps.push(error("generated-entity-undeclared", activity(item.id), `activity generated ${reference}, which no entity declares`, reference)); continue; }
       if (!generatedBy.has(found.id)) generatedBy.set(found.id, []);
@@ -97,8 +102,8 @@ export function provenanceGaps(manifest) {
       if (!index.agents.has(association.agent)) gaps.push(error("association-agent-undeclared", activity(item.id), `activity is associated with ${association.agent}, which no agent declares`, association.agent));
     }
     if (item.plan !== undefined) {
-      checkSourceReference(item.plan, activity(item.id));
-      if (index.entity(item.plan) === undefined) gaps.push(error("plan-undeclared", activity(item.id), `activity follows plan ${item.plan}, which no entity declares`, item.plan));
+      const planQualified = checkSourceReference(item.plan, activity(item.id));
+      if (planQualified && index.entity(item.plan) === undefined) gaps.push(error("plan-undeclared", activity(item.id), `activity follows plan ${item.plan}, which no entity declares`, item.plan));
       if (item.wasAssociatedWith.length === 0) gaps.push(warning("plan-without-association", activity(item.id), "activity names a plan but no associated agent followed it, so hadPlan cannot be stated"));
     }
   }
@@ -117,7 +122,7 @@ export function provenanceGaps(manifest) {
   for (const item of manifest.entities) {
     const sources = [];
     for (const reference of item.wasDerivedFrom) {
-      checkSourceReference(reference, entity(item.id));
+      if (!checkSourceReference(reference, entity(item.id))) continue;
       const found = index.entity(reference);
       if (found === undefined) gaps.push(error("derivation-unresolved", entity(item.id), `entity derives from ${reference}, which no entity declares`, reference));
       else sources.push(found.id);
@@ -134,7 +139,8 @@ export function provenanceGaps(manifest) {
     for (const sourceId of sources) {
       const used = generators.some((generatorId) => {
         const generator = index.activities.get(generatorId);
-        return generator.used.some((reference) => index.entity(reference)?.id === sourceId);
+        return generator.used.some((reference) => !isAmbiguousNiReference(reference)
+          && index.entity(reference)?.id === sourceId);
       });
       if (generators.length > 0 && !used) gaps.push(warning("derivation-not-used-by-generator", entity(item.id), `derived from ${sourceId} but no generating activity used it`, sourceId));
     }
