@@ -222,6 +222,9 @@ test("source recheck remains separate from an actual changed provenance byte add
   current.entities[0] = source("new source bytes");
   const result = assessProvenanceRevisionImpact(mappedReview(previous, current));
   assert.equal(result.ok, true);
-  assert.deepEqual(result.directChanges[0].reasons, ["entity-bytes-changed", "signchain-original-evidence-recheck"]);
+  assert.deepEqual(result.directChanges[0].reasons,
+    ["entity-bytes-changed", "entity-provenance-or-rights-changed", "signchain-original-evidence-recheck"]);
+  assert.equal(result.directChanges[0].previousNi !== result.directChanges[0].currentNi, true,
+    "a real byte-address revision is distinct from the SignChain recheck trigger");
   assert.deepEqual(result.potentiallyStaleUnchanged, ["paper"]);
 });
