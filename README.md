@@ -140,8 +140,8 @@ For example, the *structural* caller input below, using synthetic addresses and 
 
 ```json
 {
-  "previous": {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","bytes":0,"mediaType":"text/plain"}]},
-  "current":  {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","bytes":0,"mediaType":"text/plain"}]},
+  "previous": {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU","bytes":0,"mediaType":"text/plain"}]},
+  "current":  {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU","bytes":0,"mediaType":"text/plain"}]},
   "signchainComparison": {
     "type": "signchain.originalEvidenceSnapshotComparison.v1",
     "monitoredPropositionCount": 1,
