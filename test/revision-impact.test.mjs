@@ -146,3 +146,69 @@ test("oversized usage-to-generation products refuse before quadratic graph const
     [activity("dense", source.map(x => x.id), targets.map(x => x.id))]);
   assert.equal(impact(huge, manifest([])).refusal.reason, "ImpactBudgetExceeded");
 });
+
+test("accountable principal change follows both delegation levels to unchanged derived research", () => {
+  // Synthetic metadata correction, not evidence that any real institution changed.
+  const agents = [
+    { id: "institution", name: "Original institution", kind: "organization" },
+    { id: "researcher", name: "Researcher", kind: "person", actedOnBehalfOf: "institution" },
+    { id: "analysis-bot", name: "Analyst", kind: "ai-system", actedOnBehalfOf: "researcher" },
+    { id: "publisher", name: "Unrelated editor", kind: "person" },
+  ];
+  const previous = manifest([
+    entity("observation", "source"), entity("calculation", "same calculation", ["observation"]),
+    entity("paper", "same paper", ["calculation"]), entity("unrelated", "independent"),
+  ], [
+    activity("calculate", ["observation"], ["calculation"], {
+      wasAssociatedWith: [{ agent: "analysis-bot", role: "analyst" }],
+    }),
+    activity("publish", ["calculation"], ["paper"], {
+      wasAssociatedWith: [{ agent: "publisher", role: "editor" }],
+    }),
+  ], agents);
+  assert.deepEqual(impact(previous, structuredClone(previous)).affected, []);
+  const current = structuredClone(previous);
+  current.agents[0].name = "Corrected institution attribution";
+  const result = impact(previous, current);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.changedAgents, ["institution"]);
+  assert.deepEqual(result.responsibilityAffectedAgents, ["analysis-bot", "institution", "researcher"]);
+  assert.deepEqual(result.changedActivities, []);
+  assert.deepEqual(result.directChanges.map(x => [x.id, x.reasons]),
+    [["calculation", ["responsibility-changed"]]]);
+  assert.deepEqual(ids(result), ["calculation", "paper"]);
+  assert.deepEqual(result.potentiallyStaleUnchanged, ["paper"]);
+  assert.deepEqual(result.affected.find(x => x.id === "paper").path, ["calculation", "paper"]);
+});
+
+test("indirect principal changes reach original attribution without manufacturing byte changes", () => {
+  const previous = manifest([
+    entity("attributed-note", "identical", [], { wasAttributedTo: ["analyst"] }),
+    entity("independent-note", "identical independent"),
+  ], [], [
+    { id: "author", name: "Original author label", kind: "person" },
+    { id: "analyst", name: "Agent", kind: "software", actedOnBehalfOf: "author" },
+    { id: "uninvolved", name: "Other", kind: "person" },
+  ]);
+  const current = structuredClone(previous);
+  current.agents[0].name = "Corrected author label";
+  const result = impact(previous, current);
+  assert.deepEqual(result.directChanges.map(x => x.id), ["attributed-note"]);
+  assert.deepEqual(result.directChanges[0].reasons, ["responsibility-changed"]);
+  assert.equal(result.affected[0].unchangedBytes, true);
+  assert.equal(result.affected.some(x => x.id === "independent-note"), false);
+});
+
+test("an unrelated agent's revision does not contaminate independent research", () => {
+  const previous = manifest([entity("paper", "stable")], [], [
+    { id: "outsider", name: "Before", kind: "person" },
+    { id: "writer", name: "Writer", kind: "person" },
+  ]);
+  const current = structuredClone(previous);
+  current.agents[0].name = "After";
+  const result = impact(previous, current);
+  assert.deepEqual(result.changedAgents, ["outsider"]);
+  assert.deepEqual(result.responsibilityAffectedAgents, ["outsider"]);
+  assert.equal(result.disposition, "no-affected-entities-detected");
+  assert.deepEqual(result.affected, []);
+});
