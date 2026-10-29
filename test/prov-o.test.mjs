@@ -8,6 +8,7 @@ import jsonld from "jsonld";
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
 import { checkProvenanceClosure, computeFileProvenanceEntities, projectProvenanceAsProvO } from "../index.mjs";
 import { buildManifest } from "./fixture.mjs";
+import spdxVocabulary from "../data/records/spdx-license-identifiers-v3.29.0.json" with { type: "json" };
 
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 const GOLDEN = here("golden/build.ttl");
@@ -69,6 +70,55 @@ test("source-use values must be admitted as rights text and an actual URL, not a
     const result = await projectProvenanceAsProvO(manifest);
     assert.equal(result.ok, false, field);
     assert.equal(result.refusal.reason, "InvalidManifest");
+  }
+});
+
+test("SPDX vocabulary is an exact attributed, uniquely keyed, versioned official source projection", () => {
+  assert.equal(spdxVocabulary.licenseListVersion, "3.29.0");
+  assert.equal(spdxVocabulary.source.repository, "spdx/license-list-data");
+  assert.equal(spdxVocabulary.source.ref, "v3.29.0");
+  assert.equal(spdxVocabulary.source.path, "json/licenses.json");
+  assert.equal(spdxVocabulary.source.gitBlob, "79ca1b1f6792d599d4fc680782e1f81f5923b636");
+  assert.equal(spdxVocabulary.licenseIds.length, 740);
+  assert.equal(new Set(spdxVocabulary.licenseIds).size, 740);
+  assert.deepEqual(spdxVocabulary.licenseIds, [...spdxVocabulary.licenseIds].sort(),
+    "source-derived license ids must preserve deterministic code-point order");
+  for (const recognized of ["MIT", "CC-BY-4.0", "CC0-1.0", "0BSD", "jove"])
+    assert.ok(spdxVocabulary.licenseIds.includes(recognized), recognized);
+  for (const fabricated of ["all-rights-reserved", "Permission-Pending", "MIT OR CC-BY-4.0"])
+    assert.equal(spdxVocabulary.licenseIds.includes(fabricated), false, fabricated);
+});
+
+test("a license-shaped phrase is not a fabricated SPDX license URI or permission grant", async () => {
+  const dctermsLicense = "http://purl.org/dc/terms/license";
+  const cases = [
+    ["MIT", "https://spdx.org/licenses/MIT"],
+    ["CC-BY-4.0", "https://spdx.org/licenses/CC-BY-4.0"],
+    ["jove", "https://spdx.org/licenses/jove"],
+    ["all-rights-reserved", null],
+    ["Permission-Pending", null],
+    ["MIT OR CC-BY-4.0", null],
+    ["LicenseRef-private", null],
+    ["Unlicensed", null],
+    ["https://example.org/rights/restricted-source", "https://example.org/rights/restricted-source"],
+  ];
+  for (const [license, expectedIri] of cases) {
+    const manifest = buildManifest();
+    const original = entityNamed(manifest, "references.yaml");
+    original.license = license;
+    const { ok, turtle, jsonLd, refusal } = await projectProvenanceAsProvO(manifest);
+    assert.equal(ok, true, JSON.stringify(refusal));
+    const subject = `<${original.ni}> <${dctermsLicense}>`;
+    assert.ok(turtle.includes(subject), license);
+    if (expectedIri) {
+      assert.ok(turtle.includes(`${subject} <${expectedIri}> .`), license);
+    } else {
+      assert.ok(turtle.includes(`${subject} "${license}" .`), license);
+      assert.equal(turtle.includes(`${subject} <https://spdx.org/licenses/`), false,
+        "unknown testimony must not become an SPDX grant");
+    }
+    const expanded = await jsonld.toRDF(jsonLd, { format: "application/n-quads" });
+    assert.equal(await canonicalizeNQuads(expanded), turtle, license);
   }
 });
 
