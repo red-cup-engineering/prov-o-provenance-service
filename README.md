@@ -136,6 +136,27 @@ node --test test/revision-impact-admission.test.mjs
 
 ## Source-use testimony and scientific rights
 
+The existing `license` field is an **assertion**, not a legal audit.
+A bare identifier is projected as `https://spdx.org/licenses/<id>` **only
+when it appears in the original, pinned [SPDX License List 3.29.0](https://github.com/spdx/license-list-data/blob/v3.29.0/json/licenses.json)**
+(source Git blob `79ca1b1f6792d599d4fc680782e1f81f5923b636`,
+740 identifiers). The minimal, attributed identifier-only reference is
+kept in `data/records/spdx-license-identifiers-v3.29.0.json` and checked
+in the original native PROV-O suite. This is a versioned standards
+vocabulary, **not** a second license registry or source of permissions.
+
+An arbitrary syntax-compatible token (`all-rights-reserved`,
+`Permission-Pending`, `Unlicensed`, or a private `LicenseRef-...`)
+is **not** a recognized SPDX license solely because it contains letters,
+digits or hyphens. These and composite license expressions remain
+literal source assertions; do not fabricate an SPDX document URI for
+them. An explicitly supplied absolute license IRI remains an IRI, but
+its existence and authority are not checked by projecting it.
+A composite SPDX expression must not be misrepresented as a single
+SPDX license identifier. This preserves original RFC-valid RDF/JSON-LD,
+the 94-triple fixture golden for recognized licenses, source provenance,
+and the distinction between recording a claim and obtaining permission.
+
 An entity's `license` remains the existing explicit grant field. The distinct
 optional `rights` (source-qualified text), `usageInfo` (actual HTTP(S) usage
 notice URL) and `creditText` (attribution text) have separate meanings.

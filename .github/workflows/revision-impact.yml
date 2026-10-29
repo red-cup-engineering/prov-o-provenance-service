@@ -5,6 +5,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/spdx-license-identifiers-*.json'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/revision-impact.yml'
@@ -14,6 +15,7 @@ on:
       - 'src/**'
       - 'test/**'
       - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/spdx-license-identifiers-*.json'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/revision-impact.yml'
@@ -37,3 +39,21 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify native schema, source-use RDF/JSON-LD, composition and all original tests
         run: npm test
+      - name: Verify redistributable package includes the pinned official source vocabulary
+        run: |
+          npm pack --dry-run --json > /tmp/prov-o-pack.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const packages = JSON.parse(readFileSync("/tmp/prov-o-pack.json", "utf8"));
+            if (packages.length !== 1) throw new Error("expected one original package");
+            const files = new Set(packages[0].files.map(({path}) => path));
+            for (const needed of [
+              "index.mjs",
+              "src/prov-o.mjs",
+              "data/records/spdx-license-identifiers-v3.29.0.json",
+              "data/records/schema/provenance-manifest.schema.json",
+            ]) {
+              if (!files.has(needed)) throw new Error("published package omits " + needed);
+            }
+            console.log("Packed original PROV-O and pinned SPDX reference: verified");
+          '
