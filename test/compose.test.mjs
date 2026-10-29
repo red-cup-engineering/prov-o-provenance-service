@@ -44,3 +44,25 @@ test("an empty request and differing base IRIs are refused", () => {
   assert.equal(composeProvenanceManifest({ fragments: [] }).refusal.reason, "InvalidRequest");
   assert.equal(composeProvenanceManifest({ fragments: [{ baseIri: "urn:a:" }, { baseIri: "urn:b:" }] }).refusal.reason, "ConflictingBaseIri");
 });
+
+test("one source entity retains qualified use/credit through fragment composition and refuses incompatible rights", () => {
+  const source = {
+    id: "source", path: "source.csv",
+    ni: "ni:///sha-256;47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",
+    bytes: 0, mediaType: "text/csv",
+    rights: "Original source use requires attribution",
+    usageInfo: "https://aa.usno.navy.mil/about/PrivacyNotice",
+    creditText: "U.S. Naval Observatory",
+  };
+  const first = { agents: [], activities: [], entities: [source] };
+  const second = { agents: [], activities: [], entities: [{ id: source.id, rights: source.rights }] };
+  const result = composeProvenanceManifest({ fragments: [first, second] });
+  assert.equal(result.ok, true, JSON.stringify(result.refusal));
+  assert.deepEqual(result.manifest.entities, [source]);
+  assert.equal(checkProvenanceClosure(result.manifest).closed, true);
+  assert.equal(Object.hasOwn(result.manifest.entities[0], "license"), false);
+  const contradictory = composeProvenanceManifest({ fragments: [
+    first, { agents: [], activities: [], entities: [{ id: source.id, rights: "Different terms" }] },
+  ] });
+  assert.equal(contradictory.refusal.reason, "ConflictingDeclaration");
+});
