@@ -130,6 +130,32 @@ node --test test/revision-impact-admission.test.mjs
 
 Delegation changes trigger a conservative **review obligation**, not a finding that an unchanged researcher or software agent changed their behavior or that a principal granted authority. The comparator follows already admitted `actedOnBehalfOf` links across both old and new versions; it does not manufacture a source revision, infer identity from text, or authenticate the agent relationship. The pure regression suite covers a two-hop institutional delegation, indirect attribution, same-edition idempotence, and an unrelated-agent negative control.
 
+### Original SignChain evidence → PROV research re-evaluation
+
+The same existing `assessProvenanceRevisionImpact` operation now also accepts **optional, paired** `signchainComparison` and `propositionEntities` inputs. It does not import SignChain, infer that a timestamp is a revision, or add a second provenance graph. The producer of the comparison remains the original SignChain [sealed-history source module](https://github.com/red-cup-engineering/signchain/blob/research/original-evidence-snapshot-recheck-20261028/src/source-withdrawal.mjs), currently under [PR #36](https://github.com/red-cup-engineering/signchain/pull/36); independently qualify that producer and its version before using this in production.
+
+The comparison must be an actual result shape from `compareOriginalEvidenceSnapshots`: `type: "signchain.originalEvidenceSnapshotComparison.v1"`, `monitoredPropositionCount`, `comparisons` (each with `propositionAddress`, `witnessesChanged`, `observationsChanged`, `requiresReverification`), and `changedPropositionAddresses`. Its flags and summary must agree, with at most 128 distinct original propositions. An explicit `propositionEntities` array maps **each** changed SignCell proposition address to exactly one stable **logical entity id** in both closed PROV manifest editions; several propositions may map to one source entity. An unknown, duplicate, extra, missing or edition-unstable binding refuses. The operation never guesses entity identity from URL, DOI, document title, byte equality or witness address.
+
+For example, the *structural* caller input below, using synthetic addresses and identical manifest editions, requests review of a source entity `source-a` and all its PROV descendants without changing their recorded bytes:
+
+```json
+{
+  "previous": {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","bytes":0,"mediaType":"text/plain"}]},
+  "current":  {"agents":[],"activities":[],"entities":[{"id":"source-a","path":"source.txt","ni":"ni:///sha-256;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","bytes":0,"mediaType":"text/plain"}]},
+  "signchainComparison": {
+    "type": "signchain.originalEvidenceSnapshotComparison.v1",
+    "monitoredPropositionCount": 1,
+    "changedPropositionAddresses": ["synthetic-signcell-proposition-1"],
+    "comparisons": [{"propositionAddress":"synthetic-signcell-proposition-1","witnessesChanged":false,"observationsChanged":true,"requiresReverification":true}]
+  },
+  "propositionEntities": [{"propositionAddress":"synthetic-signcell-proposition-1","entityId":"source-a"}]
+}
+```
+
+The result retains regular `directChanges`, adding the specific reason `signchain-original-evidence-recheck` for a caller-qualified mapping. Its `reverificationBindings` preserves original proposition addresses; `affected` and `potentiallyStaleUnchanged` are computed by the **existing** PROV dependency traversal. A changed clock or original witness is a **re-verification candidate**, even when FOUR readings, manifest NIs, or paper bytes are unchanged. It is **not** proof that an external document was revised, that a publisher changed a notice, that a clock was authentic, or that a claim is false. The binding is source-supplied testimony, not independently established correspondence; downstream Science must authenticate, assay, revise and receive the claim in its original Work. No Work, SignChain event, license, publication status or scientific proof is automatically changed.
+
+The original native admission suite includes stable-source negative controls, witness-versus-clock effects, exact source mapping refusals, multiple coordinates per entity, and coexistence with a genuine byte revision. Run `node --test test/revision-impact-admission.test.mjs` and the full `npm test`. PROV can independently receive closed manifest editions without installing internal 561 Group systems; consumers need their own source-authenticated SignChain histories for genuine field replication.
+
 **Two real disciplinary input shapes:** The [Astronomy Science 2026 lunar-reference object](https://github.com/lenticule-science/astronomy-science-services-section/pull/13) has an external computed-almanac CSV, model calculations and a research note. A future *genuine* change to that pinned CSV must re-open its dependent calculation and conclusions; the test's artificial changed source is only an injected control, **not evidence that the USNO table changed**. In [Sociology Science's documentary evidence register](https://github.com/lenticule-science/sociology-science-services-section/blob/main/data/records/radical-political-learning-evidence-2026-10-15.json), one source document S22 underlies episodes E02 and E03: a revision to the same documentary source may affect both source-derived records. Two episodes do **not** thereby constitute two independent corroborating documents. These two domain examples are checked in `test/revision-impact.test.mjs`; the real scientific sources stay in their disciplinary owners.
 
 **Prior art:** W3C [PROV-O](https://www.w3.org/TR/prov-o/) already specifies derivation, usage, generation, plan and responsibility. This operation contributes only the **deterministic, bounded revision-impact screening rule** over our existing manifests. It does not claim to invent provenance graph reachability, epistemic uncertainty or a new formal closure theory. Research objects can continue to be packaged under [RO-Crate](https://www.researchobject.org/ro-crate/specification) while source manifests remain the underlying computational witness. Future consumers should route changed source IDs to their original Science/SignChain claim-owner, not introduce a second annotation registry or claim that a passing structural screen certifies science.
