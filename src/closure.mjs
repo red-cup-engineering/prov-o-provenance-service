@@ -166,12 +166,83 @@ export function checkProvenanceClosure(manifest) {
   return Object.freeze({ ok: true, ...provenanceGaps(admitted.manifest) });
 }
 
+
+/**
+ * Translate a conditional ORIGINAL SignChain sealed-history comparison through
+ * caller-declared proposition/entity bindings. This verifies structural
+ * agreement, not the witnesses, producer identity, source clocks or mapping
+ * authority. Only previously admitted PROV logical entities can be impacted.
+ */
+function qualifyOriginalEvidenceRechecks(signchainComparison, propositionEntities, previous, current) {
+  if (signchainComparison === undefined && propositionEntities === undefined) {
+    return { ok: true, bindings: [] };
+  }
+  if (!signchainComparison || typeof signchainComparison !== "object" ||
+      signchainComparison.type !== "signchain.originalEvidenceSnapshotComparison.v1" ||
+      !Array.isArray(signchainComparison.comparisons) ||
+      !Array.isArray(signchainComparison.changedPropositionAddresses) ||
+      !Number.isInteger(signchainComparison.monitoredPropositionCount) ||
+      signchainComparison.monitoredPropositionCount < 0 ||
+      signchainComparison.monitoredPropositionCount > 128 ||
+      signchainComparison.comparisons.length !== signchainComparison.monitoredPropositionCount ||
+      signchainComparison.changedPropositionAddresses.length > 128 ||
+      !Array.isArray(propositionEntities)) {
+    return refusal("InvalidSignChainComparison",
+      "provide both a bounded original SignChain comparison and explicit proposition/entity bindings");
+  }
+  const positions = new Set(), changed = [];
+  for (const entry of signchainComparison.comparisons) {
+    if (!entry || typeof entry !== "object" ||
+        typeof entry.propositionAddress !== "string" ||
+        !entry.propositionAddress.trim() || entry.propositionAddress.length > 1024 ||
+        positions.has(entry.propositionAddress) ||
+        typeof entry.witnessesChanged !== "boolean" ||
+        typeof entry.observationsChanged !== "boolean" ||
+        typeof entry.requiresReverification !== "boolean" ||
+        entry.requiresReverification !== (entry.witnessesChanged || entry.observationsChanged)) {
+      return refusal("InvalidSignChainComparison",
+        "comparison entries must be unique original proposition addresses with consistent evidence-delta flags");
+    }
+    positions.add(entry.propositionAddress);
+    if (entry.requiresReverification) changed.push(entry.propositionAddress);
+  }
+  const declared = signchainComparison.changedPropositionAddresses;
+  if (declared.some(x => typeof x !== "string" || !x.trim() || x.length > 1024) ||
+      new Set(declared).size !== declared.length ||
+      JSON.stringify([...declared].sort(compare)) !== JSON.stringify(changed.sort(compare))) {
+    return refusal("InvalidSignChainComparison",
+      "changed proposition addresses do not match original SignChain comparison flags");
+  }
+  if (propositionEntities.length !== changed.length ||
+      propositionEntities.length > 128) {
+    return refusal("UnqualifiedPropositionMapping",
+      "every changed original proposition must have exactly one declared PROV logical entity binding");
+  }
+  const beforeIds = new Set(previous.entities.map(x => x.id));
+  const afterIds = new Set(current.entities.map(x => x.id));
+  const mapped = new Map();
+  for (const entry of propositionEntities) {
+    if (!entry || typeof entry !== "object" ||
+        typeof entry.propositionAddress !== "string" ||
+        !changed.includes(entry.propositionAddress) ||
+        mapped.has(entry.propositionAddress) ||
+        typeof entry.entityId !== "string" ||
+        !beforeIds.has(entry.entityId) || !afterIds.has(entry.entityId)) {
+      return refusal("UnqualifiedPropositionMapping",
+        "mapping must be one-to-one by changed SignChain address, targeting a stable entity id in both closed PROV editions");
+    }
+    mapped.set(entry.propositionAddress, entry.entityId);
+  }
+  return { ok: true, bindings: [...mapped.entries()].sort(([a],[b]) => compare(a,b))
+    .map(([propositionAddress,entityId]) => ({ propositionAddress, entityId })) };
+}
+
 /**
  * Compare two source-closed PROV-O manifest editions with stable logical IDs.
  * Only signals downstream objects requiring scientific review; does not prove false claims.
  * Uses the existing schema admission and closure checks before graph traversal.
  */
-export function assessProvenanceRevisionImpact({ previous, current } = {}) {
+export function assessProvenanceRevisionImpact({ previous, current, signchainComparison, propositionEntities } = {}) {
   const earlier = admitManifest(previous);
   if (!earlier.ok) return refusal("InvalidPreviousManifest", earlier.refusal.message);
   const later = admitManifest(current);
@@ -183,5 +254,9 @@ export function assessProvenanceRevisionImpact({ previous, current } = {}) {
     const closure = provenanceGaps(manifest);
     if (!closure.closed) return refusal("ProvenanceNotClosed", edition + " manifest contains unresolved provenance", { edition, gaps: closure.gaps.filter(g => g.severity === "error") });
   }
-  return analyzeAdmittedProvenanceRevision(earlier.manifest, later.manifest);
+  const qualified = qualifyOriginalEvidenceRechecks(signchainComparison, propositionEntities,
+    earlier.manifest, later.manifest);
+  if (!qualified.ok) return qualified;
+  return analyzeAdmittedProvenanceRevision(earlier.manifest, later.manifest,
+    { rechecks: qualified.bindings });
 }
