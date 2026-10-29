@@ -209,7 +209,7 @@
           },
           "usageInfo": {
             "type": "string",
-            "pattern": "^https?://[^\\s<>\\\"{}|\\\\^`]+$",
+            "pattern": "^https?://[^\\s<>\"{}|\\\\`^]+$",
             "description": "Source-specific official use/citation notice URL. Unlike license, this is not a grant of reuse permission."
           },
           "creditText": {
