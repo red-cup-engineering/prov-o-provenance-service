@@ -8,6 +8,7 @@ import { provenanceGaps } from "./closure.mjs";
 
 export const PROV = "http://www.w3.org/ns/prov#";
 export const DCTERMS = "http://purl.org/dc/terms/";
+export const SCHEMA = "https://schema.org/";
 export const RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 export const RDFS = "http://www.w3.org/2000/01/rdf-schema#";
 export const XSD = "http://www.w3.org/2001/XMLSchema#";
@@ -94,6 +95,10 @@ export function provStatements(manifest) {
     add(subject, `${DCTERMS}format`, literal(entity.mediaType));
     add(subject, `${DCTERMS}extent`, literal(String(entity.bytes), { datatype: `${XSD}nonNegativeInteger` }));
     if (entity.license !== undefined) add(subject, `${DCTERMS}license`, licenseTerm(entity.license));
+    // An official use notice and credit are source testimony; neither grants a license.
+    if (entity.rights !== undefined) add(subject, `${DCTERMS}rights`, literal(entity.rights));
+    if (entity.usageInfo !== undefined) add(subject, `${SCHEMA}usageInfo`, iriTerm(entity.usageInfo));
+    if (entity.creditText !== undefined) add(subject, `${SCHEMA}creditText`, literal(entity.creditText));
     if (entity.git !== undefined) {
       add(subject, `${DCTERMS}identifier`, literal(`git:blob:${entity.git.blob}`));
       const url = repositoryUrl(entity.git.repository);
@@ -110,9 +115,13 @@ export function provStatements(manifest) {
 
 const PREFIXES = [["dcterms", DCTERMS], ["prov", PROV], ["rdfs", RDFS], ["xsd", XSD]];
 
-/** JSON-LD (compacted with the four-prefix context) for the same statements; nodes and values sorted. Written by json-ld-services-section. */
+/** JSON-LD for the same original statements. Preserve the reviewed four-prefix
+ * output on unaffected manifests; add schema only when source-use assertions
+ * actually require it. The existing JSON-LD owner still performs compaction. */
 export function provJsonLd(statements) {
-  return compactStatementsAsJsonLd(statements, { prefixes: PREFIXES });
+  const sourceUse = statements.some(({ predicate }) => predicate.startsWith(SCHEMA));
+  const prefixes = sourceUse ? [...PREFIXES.slice(0, 3), ["schema", SCHEMA], PREFIXES[3]] : PREFIXES;
+  return compactStatementsAsJsonLd(statements, { prefixes });
 }
 
 /**
