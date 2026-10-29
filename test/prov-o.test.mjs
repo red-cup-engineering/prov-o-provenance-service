@@ -219,6 +219,21 @@ test("computeFileProvenanceEntities: NI, size and media type, sorted by path", (
   assert.equal(result.entities[2].id, "z/last.md");
 });
 
+test("original file-entity operation passes through source-use testimony without inventing a license", () => {
+  const r = computeFileProvenanceEntities({ files: [{
+    path: "source.csv", bytesBase64: "YQ==", mediaType: "text/csv",
+    usageInfo: "https://aa.usno.navy.mil/about/PrivacyNotice",
+    rights: "Upstream source credits requested; not an open license",
+    creditText: "U.S. Naval Observatory",
+  }] });
+  assert.equal(r.ok, true);
+  const e = r.entities[0];
+  assert.equal(e.usageInfo, "https://aa.usno.navy.mil/about/PrivacyNotice");
+  assert.equal(e.rights, "Upstream source credits requested; not an open license");
+  assert.equal(e.creditText, "U.S. Naval Observatory");
+  assert.equal(Object.hasOwn(e, "license"), false);
+});
+
 test("computeFileProvenanceEntities: refusals", () => {
   const reason = (files) => computeFileProvenanceEntities({ files }).refusal.reason;
   assert.equal(reason([{ path: "/abs.md", bytesBase64: "" }]), "InvalidPath");
