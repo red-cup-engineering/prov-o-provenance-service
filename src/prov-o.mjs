@@ -5,6 +5,7 @@ import { compactStatementsAsJsonLd } from "@red-cup-engineering/json-ld-services
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
 import { admitManifest, compare, indexManifest, mintIri, refusal } from "./manifest.mjs";
 import { provenanceGaps } from "./closure.mjs";
+import spdxVocabulary from "../data/records/spdx-license-identifiers-v3.29.0.json" with { type: "json" };
 
 export const PROV = "http://www.w3.org/ns/prov#";
 export const DCTERMS = "http://purl.org/dc/terms/";
@@ -14,7 +15,9 @@ export const RDFS = "http://www.w3.org/2000/01/rdf-schema#";
 export const XSD = "http://www.w3.org/2001/XMLSchema#";
 const RDF_TYPE = `${RDF}type`;
 const SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
-const SPDX_ID = /^[A-Za-z0-9][A-Za-z0-9.+-]*$/u;
+// Identifiers are factual entries in SPDX's pinned published vocabulary.
+// A regex-shaped word is not evidence that an SPDX license exists.
+const SPDX_LICENSE_IDS = new Set(spdxVocabulary.licenseIds);
 
 const AGENT_TYPES = {
   person: ["Person"],
@@ -33,7 +36,9 @@ function repositoryUrl(repository) {
 
 function licenseTerm(license) {
   if (SCHEME.test(license)) return iriTerm(license);
-  if (SPDX_ID.test(license)) return iriTerm(`https://spdx.org/licenses/${license}`);
+  if (SPDX_LICENSE_IDS.has(license)) return iriTerm(`https://spdx.org/licenses/${license}`);
+  // Unknown identifiers, private rights phrases and composite SPDX expressions
+  // remain literal testimony; never manufacture a supposedly official grant.
   return literal(license);
 }
 
