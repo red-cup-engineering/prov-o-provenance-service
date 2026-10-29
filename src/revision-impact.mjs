@@ -163,6 +163,6 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
     affected, potentiallyStaleUnchanged: affected.filter(a => !a.direct && a.unchangedBytes).map(a => a.id),
     summary: { previousEntities: old.size, currentEntities: now.size, changedDirectly: seeds.length,
       candidateImpacts: affected.length, unchangedDependentCandidates: affected.filter(a => !a.direct && a.unchangedBytes).length },
-    boundary: "Conservative PROV dependency influence or caller-declared original-evidence recheck; cannot authenticate a SignChain source, witness clock or proposition-to-entity binding, and cannot prove a false claim, legal disclosure right or research settlement. Independent scientific reassessment remains required.",
+    boundary: "Conservative PROV dependency influence or caller-declared original-evidence recheck; this is not a false claim finding. It cannot authenticate a SignChain source, witness clock or proposition-to-entity binding, nor prove a disclosure right or research settlement. Independent scientific reassessment remains required.",
   };
 }
