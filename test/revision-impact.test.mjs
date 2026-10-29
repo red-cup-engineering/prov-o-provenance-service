@@ -57,6 +57,49 @@ test("source rights change propagates review even with identical bytes", () => {
   assert.ok(r.potentiallyStaleUnchanged.includes("output"));
 });
 
+test("a corrected source-use notice and credit re-open derived research without changed bytes", () => {
+  // This is a deliberate hypothetical correction, NOT evidence USNO's notice changed.
+  const policy = "https://aa.usno.navy.mil/about/PrivacyNotice";
+  const previous = manifest([
+    entity("reference", "same computed almanac", [], {
+      usageInfo: policy, rights: "Public site information, exceptions may apply",
+      creditText: "U.S. Naval Observatory",
+    }),
+    entity("analysis", "identical derived calculations", ["reference"]),
+    entity("unrelated", "unrelated source"),
+  ], [activity("analyze", ["reference"], ["analysis"])]);
+  const current = structuredClone(previous);
+  current.entities[0].rights = "Updated source-use statement, requires review";
+  current.entities[0].creditText = "U.S. Naval Observatory, Astronomical Applications Department";
+  const result = impact(previous, current);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.directChanges.map(x => x.id), ["reference"]);
+  assert.deepEqual(result.directChanges[0].reasons, ["entity-provenance-or-rights-changed"]);
+  assert.deepEqual(ids(result), ["analysis", "reference"]);
+  assert.deepEqual(result.potentiallyStaleUnchanged, ["analysis"]);
+  assert.equal(result.affected.find(x => x.id === "analysis").sourceOfChange, "reference");
+  assert.equal(result.affected.find(x => x.id === "analysis").unchangedBytes, true);
+  assert.equal(result.affected.some(x => x.id === "unrelated"), false);
+  assert.equal(previous.entities[0].rights, "Public site information, exceptions may apply");
+});
+
+test("changing only an official usage notice URL triggers review; unchanged metadata never does", () => {
+  const old = manifest([
+    entity("reference", "same bytes", [], {
+      usageInfo: "https://example.org/notice/v1",
+      rights: "Documented conditional reuse", creditText: "Reference author",
+    }),
+    entity("report", "same output", ["reference"]),
+  ], [activity("publish", ["reference"], ["report"])]);
+  const unchanged = structuredClone(old);
+  assert.deepEqual(impact(old, unchanged).affected, []);
+  const updated = structuredClone(old);
+  updated.entities[0].usageInfo = "https://example.org/notice/v2";
+  const result = impact(old, updated);
+  assert.deepEqual(result.directChanges.map(x => x.id), ["reference"]);
+  assert.deepEqual(result.potentiallyStaleUnchanged, ["report"]);
+});
+
 test("changed activity metadata qualifies descendants for review", () => {
   const old = manifest([entity("source", "source"), entity("calc", "same", ["source"]), entity("paper", "same", ["calc"])],
     [activity("compute", ["source"], ["calc"]), activity("report", ["calc"], ["paper"])]);

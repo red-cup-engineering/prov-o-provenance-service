@@ -37,3 +37,29 @@ test("two identical admitted editions do not invent an impact", () => {
   assert.deepEqual(r.directChanges, []);
   assert.deepEqual(r.affected, []);
 });
+
+test("native provenance admission preserves external use notice revisions and refuses fabricated license surrogates", () => {
+  const first = old();
+  first.entities[0].usageInfo = "https://aa.usno.navy.mil/about/PrivacyNotice";
+  first.entities[0].rights = "Public information subject to exceptions";
+  first.entities[0].creditText = "U.S. Naval Observatory";
+  const identical = structuredClone(first);
+  assert.equal(assessProvenanceRevisionImpact({ previous: first, current: identical }).affected.length, 0);
+  const revised = structuredClone(first);
+  revised.entities[0].rights = "Corrected account of external source-use obligations";
+  const result = assessProvenanceRevisionImpact({ previous: first, current: revised });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.directChanges.map(x => x.id), ["reference"]);
+  assert.deepEqual(result.potentiallyStaleUnchanged, ["paper"]);
+  assert.equal(first.entities[0].license, undefined, "source-use advice is not an invented license");
+  for (const [key, value] of [
+    ["usageInfo", "javascript:unsafe"], ["usageInfo", "https://example.org/space in URL"],
+    ["rights", ""], ["creditText", ""],
+  ]) {
+    const inadmissible = structuredClone(first);
+    inadmissible.entities[0][key] = value;
+    assert.equal(assessProvenanceRevisionImpact({
+      previous: first, current: inadmissible,
+    }).refusal.reason, "InvalidCurrentManifest", key);
+  }
+});

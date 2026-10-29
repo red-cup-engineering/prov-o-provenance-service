@@ -40,6 +40,38 @@ test("PROV-O terms: classes, qualified association with role, plan, delegation, 
   has(`<${PROV}hadActivity> <https://example.org/prov/activity/draft-intro> .`);
 });
 
+test("source use, rights and credit project as separate RDF/JSON-LD testimony, never as a license", async () => {
+  const manifest = buildManifest();
+  const source = entityNamed(manifest, "references.yaml");
+  delete source.license;
+  source.usageInfo = "https://aa.usno.navy.mil/about/PrivacyNotice";
+  source.rights = "Public source-use notice; exceptions may apply";
+  source.creditText = "U.S. Naval Observatory, Astronomical Applications Department";
+  const result = await projectProvenanceAsProvO(manifest);
+  assert.equal(result.ok, true, JSON.stringify(result.refusal));
+  const entity = `<${source.ni}>`;
+  assert.ok(result.turtle.includes(`${entity} <http://purl.org/dc/terms/rights> "Public source-use notice; exceptions may apply" .`));
+  assert.ok(result.turtle.includes(`${entity} <https://schema.org/usageInfo> <https://aa.usno.navy.mil/about/PrivacyNotice> .`));
+  assert.ok(result.turtle.includes(`${entity} <https://schema.org/creditText> "U.S. Naval Observatory, Astronomical Applications Department" .`));
+  assert.equal(result.turtle.includes(`${entity} <http://purl.org/dc/terms/license>`), false);
+  assert.equal(result.jsonLd["@context"].schema, "https://schema.org/");
+  const nquads = await jsonld.toRDF(result.jsonLd, { format: "application/n-quads" });
+  assert.equal(await canonicalizeNQuads(nquads), result.turtle);
+});
+
+test("source-use values must be admitted as rights text and an actual URL, not an executable pseudo-URL", async () => {
+  for (const [field, value] of [
+    ["rights", ""], ["creditText", ""], ["usageInfo", "javascript:alert(1)"],
+    ["usageInfo", "https://example.org/rights notice"]
+  ]) {
+    const manifest = buildManifest();
+    entityNamed(manifest, "references.yaml")[field] = value;
+    const result = await projectProvenanceAsProvO(manifest);
+    assert.equal(result.ok, false, field);
+    assert.equal(result.refusal.reason, "InvalidManifest");
+  }
+});
+
 test("determinism: same bytes on re-projection and when the manifest's arrays are reordered", async () => {
   const manifest = buildManifest();
   const first = await projectProvenanceAsProvO(manifest);
@@ -185,6 +217,21 @@ test("computeFileProvenanceEntities: NI, size and media type, sorted by path", (
   assert.equal(result.entities[2].ni, `ni:///sha-256;${createHash("sha256").update("abc").digest("base64url")}`);
   assert.equal(result.entities[2].mediaType, "text/markdown");
   assert.equal(result.entities[2].id, "z/last.md");
+});
+
+test("original file-entity operation passes through source-use testimony without inventing a license", () => {
+  const r = computeFileProvenanceEntities({ files: [{
+    path: "source.csv", bytesBase64: "YQ==", mediaType: "text/csv",
+    usageInfo: "https://aa.usno.navy.mil/about/PrivacyNotice",
+    rights: "Upstream source credits requested; not an open license",
+    creditText: "U.S. Naval Observatory",
+  }] });
+  assert.equal(r.ok, true);
+  const e = r.entities[0];
+  assert.equal(e.usageInfo, "https://aa.usno.navy.mil/about/PrivacyNotice");
+  assert.equal(e.rights, "Upstream source credits requested; not an open license");
+  assert.equal(e.creditText, "U.S. Naval Observatory");
+  assert.equal(Object.hasOwn(e, "license"), false);
 });
 
 test("computeFileProvenanceEntities: refusals", () => {
