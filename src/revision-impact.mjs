@@ -94,18 +94,37 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
     .filter(id => canonical(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== canonical(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(cmp);
   const changedAgents = [...new Set([...oldAgents.keys(), ...nowAgents.keys()])]
     .filter(id => (oldAgents.has(id) ? stableAgent(oldAgents.get(id)) : null) !== (nowAgents.has(id) ? stableAgent(nowAgents.get(id)) : null)).sort(cmp);
+  // Provenance responsibility extends through source-admitted prov:actedOnBehalfOf.
+  // A principal's revised identity/accountability can require review of an
+  // unchanged delegate's output. Retain both editions' delegation relations:
+  // deleting a delegation must not hide its prior downstream consumers.
+  const delegatedBy = new Map();
+  for (const m of [previous, current]) for (const agent of m.agents) {
+    if (!agent.actedOnBehalfOf) continue;
+    if (!delegatedBy.has(agent.actedOnBehalfOf)) delegatedBy.set(agent.actedOnBehalfOf, new Set());
+    delegatedBy.get(agent.actedOnBehalfOf).add(agent.id);
+  }
+  const responsibilityAffected = new Set(changedAgents);
+  const delegationQueue = [...changedAgents];
+  for (let i = 0; i < delegationQueue.length; i++) {
+    for (const delegate of delegatedBy.get(delegationQueue[i]) ?? []) {
+      if (responsibilityAffected.has(delegate)) continue;
+      responsibilityAffected.add(delegate);
+      delegationQueue.push(delegate);
+    }
+  }
   for (const m of [previous, current]) {
     const index = mapById(m.entities), byNi = new Map(m.entities.map(e => [e.ni, e]));
     const lookup = (ref) => (index.get(ref) ?? byNi.get(ref))?.id;
     for (const a of m.activities) {
-      if (changedActivities.includes(a.id) || (a.wasAssociatedWith ?? []).some(x => changedAgents.includes(x.agent))) {
+      if (changedActivities.includes(a.id) || (a.wasAssociatedWith ?? []).some(x => responsibilityAffected.has(x.agent))) {
         for (const ref of a.generated ?? []) {
           const id = lookup(ref);
           if (id) addReason(id, changedActivities.includes(a.id) ? "generating-activity-changed" : "responsibility-changed");
         }
       }
     }
-    for (const e of m.entities) if ((e.wasAttributedTo ?? []).some(id => changedAgents.includes(id))) addReason(e.id, "responsibility-changed");
+    for (const e of m.entities) if ((e.wasAttributedTo ?? []).some(id => responsibilityAffected.has(id))) addReason(e.id, "responsibility-changed");
   }
   const seeds = [...direct.keys()].sort(cmp), queue = [...seeds];
   const witness = new Map(seeds.map(id => [id, { source: id, path: [id], edgeKinds: [] }]));
@@ -129,7 +148,7 @@ export function analyzeAdmittedProvenanceRevision(previous, current) {
   return {
     ok: true, type: "ProvenanceRevisionImpact", version: 1,
     disposition: seeds.length ? "candidate-reassessment-needed" : "no-affected-entities-detected",
-    directChanges, changedActivities, changedAgents,
+    directChanges, changedActivities, changedAgents, responsibilityAffectedAgents: list(responsibilityAffected),
     affected, potentiallyStaleUnchanged: affected.filter(a => !a.direct && a.unchangedBytes).map(a => a.id),
     summary: { previousEntities: old.size, currentEntities: now.size, changedDirectly: seeds.length,
       candidateImpacts: affected.length, unchangedDependentCandidates: affected.filter(a => !a.direct && a.unchangedBytes).length },
