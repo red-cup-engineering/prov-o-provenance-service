@@ -33,7 +33,7 @@ function decodeBase64(text) {
 /**
  * Compute the NI content address and size of files given as relative paths and base64 bytes.
  * Entities come back in the shape of a provenance manifest entity, sorted by path.
- * @param {{files: {path: string, bytesBase64: string, mediaType?: string, id?: string, git?: object, license?: string, wasDerivedFrom?: string[], wasAttributedTo?: string[]}[]}} request
+ * @param {{files: {path: string, bytesBase64: string, mediaType?: string, id?: string, git?: object, license?: string, rights?: string, usageInfo?: string, creditText?: string, wasDerivedFrom?: string[], wasAttributedTo?: string[]}[]}} request
  * @returns {{ok: true, entities: object[]}|{ok: false, refusal: object}}
  */
 export function computeFileProvenanceEntities(request) {
@@ -59,6 +59,9 @@ export function computeFileProvenanceEntities(request) {
       wasDerivedFrom: file.wasDerivedFrom ?? [],
       wasAttributedTo: file.wasAttributedTo ?? [],
       ...(file.license === undefined ? {} : { license: file.license }),
+      ...(file.rights === undefined ? {} : { rights: file.rights }),
+      ...(file.usageInfo === undefined ? {} : { usageInfo: file.usageInfo }),
+      ...(file.creditText === undefined ? {} : { creditText: file.creditText }),
     });
   }
   entities.sort((left, right) => compare(left.path, right.path));
