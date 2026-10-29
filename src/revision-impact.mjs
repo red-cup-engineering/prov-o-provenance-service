@@ -13,6 +13,11 @@ const mapById = (xs) => new Map(xs.map(x => [x.id, x]));
 const stableEntity = (e) => canonical({
   path: e.path, bytes: e.bytes, mediaType: e.mediaType,
   git: e.git ?? null, license: e.license ?? null,
+  // Source-use guidance, attributed credit, and rights testimony are not
+  // licenses. Compare their exact recorded values: a correction can require
+  // review even when both the input bytes and license remain unchanged.
+  rights: e.rights ?? null, usageInfo: e.usageInfo ?? null,
+  creditText: e.creditText ?? null,
   wasAttributedTo: list(e.wasAttributedTo ?? []),
 });
 const stableAgent = (a) => canonical(a);
