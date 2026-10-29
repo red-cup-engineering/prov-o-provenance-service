@@ -375,6 +375,60 @@ test("command: check-provenance-closure and project-provenance-as-prov-o", () =>
   assert.equal(projection.status, 0);
 });
 
+
+test("command: original SignChain witness revision reaches only related closed research objects", () => {
+  // Synthetic original Signal/Cell address; this is transport/closure receiving,
+  // not authentication of a real producer or observed publisher revision.
+  const before = buildManifest(), after = clone(before);
+  const propositionAddress = "synthetic-original-signcell-revision-01";
+  const signchainComparison = {
+    type: "signchain.originalEvidenceSnapshotComparison.v1",
+    monitoredPropositionCount: 1,
+    changedPropositionAddresses: [propositionAddress],
+    comparisons: [{ propositionAddress, witnessesChanged: false,
+      observationsChanged: true, requiresReverification: true, readingChanged: false }],
+    standing: "conditional source-evidence comparison, not source authentication",
+  };
+  const changed = {
+    previous: before, current: after, signchainComparison,
+    propositionEntities: [{ propositionAddress, entityId: "references.yaml" }],
+  };
+  const same = {
+    ...changed, signchainComparison: {
+      ...signchainComparison, changedPropositionAddresses: [],
+      comparisons: [{ ...signchainComparison.comparisons[0],
+        observationsChanged: false, requiresReverification: false }],
+    },
+    propositionEntities: [],
+  };
+  const unqualified = {
+    ...changed, propositionEntities: [{ propositionAddress, entityId: "foreign-source" }],
+  };
+  const result = command("assess-provenance-revision-impact", [changed, same, unqualified]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.lines.length, 3, "each input line produces one result or refusal");
+  const [review, quiet, refusal] = result.lines;
+  assert.equal(review.ok, true);
+  assert.deepEqual(review.reverificationBindings,
+    [{ propositionAddress, entityId: "references.yaml" }]);
+  assert.deepEqual(review.changedActivities, []);
+  assert.deepEqual(review.changedAgents, []);
+  assert.deepEqual(review.directChanges.map(x => [x.id, x.reasons]),
+    [["references.yaml", ["signchain-original-evidence-recheck"]]]);
+  assert.deepEqual(review.affected.map(x => x.id),
+    ["build/manuscript.html", "manuscript/00-intro.md", "references.yaml"]);
+  assert.deepEqual(review.potentiallyStaleUnchanged,
+    ["build/manuscript.html", "manuscript/00-intro.md"]);
+  assert.equal(review.affected.every(x => x.unchangedBytes), true,
+    "witness testimony does not forge a new recorded source or paper NI");
+  assert.equal(review.affected.some(x => x.id === "styles/minimal.csl"), false);
+  assert.match(review.boundary, /cannot authenticate/);
+  assert.equal(quiet.ok, true);
+  assert.deepEqual(quiet.affected, [], "identical source witness readings are a negative control");
+  assert.equal(refusal.ok, false);
+  assert.equal(refusal.refusal.reason, "UnqualifiedPropositionMapping");
+});
+
 test("command: --help names the operation", () => {
   const run = spawnSync(process.execPath, [here("../scripts/project-provenance-as-prov-o.mjs"), "--help"], { encoding: "utf8" });
   assert.match(run.stdout, /^projectProvenanceAsProvO/u);
