@@ -212,3 +212,58 @@ test("an unrelated agent's revision does not contaminate independent research", 
   assert.equal(result.disposition, "no-affected-entities-detected");
   assert.deepEqual(result.affected, []);
 });
+
+test("finite two-edition delegation model: all 144 before/after edge combinations", () => {
+  // Four held agent identities, independent of the original graph implementation.
+  // Changing principal A must be visible through the union of original and
+  // revised delegation edges; changes to B or C themselves are direct reasons.
+  const bOptions = [null, "institution", "unrelated"];
+  const cOptions = [null, "analyst", "institution", "unrelated"];
+  const choices = bOptions.flatMap(b => cOptions.map(c => ({ b, c })));
+  const agents = choice => [
+    { id: "institution", name: "Institution original", kind: "organization" },
+    { id: "analyst", name: "Analyst", kind: "person", ...(choice.b ? { actedOnBehalfOf: choice.b } : {}) },
+    { id: "bot", name: "Bot", kind: "software", ...(choice.c ? { actedOnBehalfOf: choice.c } : {}) },
+    { id: "unrelated", name: "Independent", kind: "organization" },
+  ];
+  const root = manifest([
+    entity("source", "same external source"),
+    entity("draft", "same draft bytes", ["source"]),
+    entity("outside", "unrelated bytes"),
+  ], [activity("drafting", ["source"], ["draft"], {
+    wasAssociatedWith: [{ agent: "bot", role: "author" }],
+  })], []);
+  const sorted = set => [...set].sort();
+  let count = 0;
+  for (const before of choices) for (const after of choices) {
+    const previous = structuredClone(root), current = structuredClone(root);
+    previous.agents = agents(before);
+    current.agents = agents(after);
+    current.agents[0].name = "Institution corrected";
+    const directly = new Set(["institution"]);
+    if (before.b !== after.b) directly.add("analyst");
+    if (before.c !== after.c) directly.add("bot");
+    // Distinct independent finite oracle: repeatedly scan the two original
+    // agent lists until no additional delegate is reachable from a changed
+    // principal. The production implementation uses a reverse index and queue.
+    const expected = new Set(directly);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const agent of [...previous.agents, ...current.agents]) {
+        if (agent.actedOnBehalfOf && expected.has(agent.actedOnBehalfOf) && !expected.has(agent.id)) {
+          expected.add(agent.id);
+          grew = true;
+        }
+      }
+    }
+    const result = impact(previous, current);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.changedAgents, sorted(directly));
+    assert.deepEqual(result.responsibilityAffectedAgents, sorted(expected));
+    assert.equal(result.affected.some(x => x.id === "draft"), expected.has("bot"));
+    assert.equal(result.affected.some(x => x.id === "outside"), false);
+    count += 1;
+  }
+  assert.equal(count, 144);
+});
