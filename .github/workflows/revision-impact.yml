@@ -1,15 +1,21 @@
-name: Source revision-impact conformance
+name: Original PROV-O source revision and package conformance
 on:
   pull_request:
     paths:
-      - 'src/revision-impact.mjs'
-      - 'test/revision-impact.test.mjs'
+      - 'src/**'
+      - 'test/**'
+      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/revision-impact.yml'
   push:
     branches: [main]
     paths:
-      - 'src/revision-impact.mjs'
-      - 'test/revision-impact.test.mjs'
+      - 'src/**'
+      - 'test/**'
+      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/revision-impact.yml'
   workflow_dispatch:
 permissions:
@@ -17,13 +23,17 @@ permissions:
 jobs:
   evidence-impact:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Check pure source and adversarial domain controls
+      - name: Check original pure revision-impact law and negative controls
         run: |
           node --check src/revision-impact.mjs
           node --test test/revision-impact.test.mjs
+      - name: Install original published package dependency closure
+        run: npm ci --no-audit --no-fund
+      - name: Verify native schema, source-use RDF/JSON-LD, composition and all original tests
+        run: npm test
