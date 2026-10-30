@@ -148,11 +148,46 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
       queue.push(dst);
     }
   }
+  // Retain every reachable original change seed, not merely the first
+  // shortest-path witness. Multiple revised sources can independently require
+  // rechecking the same unchanged research object. Union-edition cycles are
+  // harmless because each (node, seed) pair is visited at most once.
+  // Refuse rather than return an incomplete cause list when the report budget
+  // is exhausted; a truncated report would hide a scientific obligation.
+  const sourcesByAffected = new Map();
+  const sourceQueue = [];
+  for (const id of seeds) {
+    sourcesByAffected.set(id, new Set([id]));
+    sourceQueue.push([id, id]);
+  }
+  let scannedCausalEdges = 0;
+  for (let i = 0; i < sourceQueue.length; i += 1) {
+    const [node, source] = sourceQueue[i];
+    const successors = graph.get(node);
+    if (!successors) continue;
+    if (scannedCausalEdges + successors.size > 500_000) {
+      return { ok: false, refusal: { reason: "ImpactBudgetExceeded",
+        message: "complete multi-source impact would exceed the dependency scan budget" } };
+    }
+    scannedCausalEdges += successors.size;
+    for (const dst of successors.keys()) {
+      if (!sourcesByAffected.has(dst)) sourcesByAffected.set(dst, new Set());
+      const sources = sourcesByAffected.get(dst);
+      if (sources.has(source)) continue;
+      if (sourceQueue.length >= 200_000) {
+        return { ok: false, refusal: { reason: "ImpactBudgetExceeded",
+          message: "complete multi-source impact would exceed the change-source pair budget" } };
+      }
+      sources.add(source);
+      sourceQueue.push([dst, source]);
+    }
+  }
   const directChanges = seeds.map(id => ({
     id, reasons: list(direct.get(id)), previousNi: old.get(id)?.ni ?? null, currentNi: now.get(id)?.ni ?? null,
   }));
   const affected = [...witness.entries()].sort((a, b) => cmp(a[0], b[0])).map(([id, w]) => ({
-    id, direct: direct.has(id), sourceOfChange: w.source, path: w.path, edgeKinds: w.edgeKinds,
+    id, direct: direct.has(id), sourceOfChange: w.source,
+    sourcesOfChange: list(sourcesByAffected.get(id) ?? []), path: w.path, edgeKinds: w.edgeKinds,
     existsInCurrent: now.has(id), unchangedBytes: old.has(id) && now.has(id) && old.get(id).ni === now.get(id).ni,
   }));
   return {

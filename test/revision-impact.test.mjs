@@ -267,3 +267,70 @@ test("finite two-edition delegation model: all 144 before/after edge combination
   }
   assert.equal(count, 144);
 });
+
+test("convergent research revisions preserve every original change source without falsity claims", () => {
+  // These are two hypothetical source occurrences, not authenticated
+  // independent publishers or actual external revisions.
+  const previous = manifest([
+    entity("alpha", "first source"), entity("beta", "second source"),
+    entity("analysis", "unchanged calculation", ["alpha", "beta"]),
+    entity("paper", "unchanged paper", ["analysis"]),
+    entity("unrelated", "control"),
+  ]);
+  const current = structuredClone(previous);
+  current.entities[0].ni = ni("first source revised");
+  current.entities[1].ni = ni("second source revised");
+  const result = impact(previous, current);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.directChanges.map(x => x.id), ["alpha", "beta"]);
+  assert.deepEqual(result.affected.find(x => x.id === "analysis").sourcesOfChange, ["alpha", "beta"]);
+  const paper = result.affected.find(x => x.id === "paper");
+  assert.deepEqual(paper.sourcesOfChange, ["alpha", "beta"]);
+  assert.equal(paper.sourceOfChange, "alpha", "old shortest-witness field remains compatible");
+  assert.deepEqual(paper.path, ["alpha", "analysis", "paper"]);
+  assert.equal(paper.unchangedBytes, true);
+  assert.deepEqual(result.potentiallyStaleUnchanged, ["analysis", "paper"]);
+  assert.equal(result.affected.some(x => x.id === "unrelated"), false);
+  assert.deepEqual(impact(previous, structuredClone(previous)).affected, []);
+  const oneChange = structuredClone(previous);
+  oneChange.entities[0].ni = ni("first source revised");
+  assert.deepEqual(impact(previous, oneChange).affected.find(x => x.id === "paper").sourcesOfChange, ["alpha"]);
+});
+
+test("former and current provenance paths both remain review sources", () => {
+  const previous = manifest([
+    entity("alpha", "a"), entity("beta", "b"),
+    entity("analysis", "unchanged", ["alpha"]),
+    entity("paper", "same", ["analysis"]),
+  ]);
+  const current = structuredClone(previous);
+  current.entities[0].ni = ni("changed a");
+  current.entities[1].ni = ni("changed b");
+  current.entities[2].wasDerivedFrom = ["beta"];
+  const result = impact(previous, current);
+  assert.equal(result.ok, true);
+  // The analysis is also a direct seed because its recorded incoming edge changed.
+  assert.deepEqual(result.affected.find(x => x.id === "paper").sourcesOfChange,
+    ["alpha", "analysis", "beta"]);
+  assert.ok(result.directChanges.find(x => x.id === "analysis").reasons.includes("incoming-dependency-changed"));
+});
+
+test("large convergent source changes refuse rather than hide some re-verification origins", () => {
+  const n = 300;
+  const roots = Array.from({length: n}, (_, i) => entity("source-" + i, "v1-" + i));
+  const middles = Array.from({length: n}, (_, i) => entity("middle-" + i, "mid-" + i,
+    roots.map(e => e.id)));
+  const leaves = Array.from({length: n}, (_, i) => entity("leaf-" + i, "leaf-" + i,
+    ["middle-" + i]));
+  const papers = Array.from({length: n}, (_, i) => entity("paper-" + i, "paper-" + i,
+    ["leaf-" + i]));
+  const previous = manifest([...roots, ...middles, ...leaves, ...papers]);
+  const current = structuredClone(previous);
+  for (let i = 0; i < n; i++) current.entities[i].ni = ni("v2-" + i);
+  // Only 90,600 distinct graph edges: under the original 200,000-edge limit.
+  // But >200,000 reachable (affected object, root revision) pairs.
+  const result = impact(previous, current);
+  assert.equal(result.ok, false);
+  assert.equal(result.refusal.reason, "ImpactBudgetExceeded");
+  assert.match(result.refusal.message, /change-source pair budget/);
+});

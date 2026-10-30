@@ -228,3 +228,22 @@ test("source recheck remains separate from an actual changed provenance byte add
     "a real byte-address revision is distinct from the SignChain recheck trigger");
   assert.deepEqual(result.potentiallyStaleUnchanged, ["paper"]);
 });
+
+test("native closed PROV revisions retain both source-change origins of one unchanged research paper", () => {
+  const previous = old();
+  const second = { id: "second-reference", path: "data/second-reference.csv",
+    ni: ni("second old"), bytes: Buffer.byteLength("second old"),
+    mediaType: "text/csv" };
+  previous.entities.splice(1, 0, second);
+  previous.entities.find(x => x.id === "paper").wasDerivedFrom = ["reference", "second-reference"];
+  previous.activities[0].used = ["reference", "second-reference"];
+  const current = structuredClone(previous);
+  current.entities[0] = source("revised first observation");
+  current.entities[1] = { ...second, ni: ni("second new"), bytes: Buffer.byteLength("second new") };
+  const result = assessProvenanceRevisionImpact({ previous, current });
+  assert.equal(result.ok, true, JSON.stringify(result.refusal));
+  assert.deepEqual(result.directChanges.map(x => x.id), ["reference", "second-reference"]);
+  assert.deepEqual(result.affected.find(x => x.id === "paper").sourcesOfChange,
+    ["reference", "second-reference"]);
+  assert.equal(result.affected.find(x => x.id === "paper").unchangedBytes, true);
+});
