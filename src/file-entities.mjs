@@ -1,5 +1,5 @@
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
-import { base64ToBytes } from "@red-cup-engineering/computer-content-address-engineering-services-section/semiotic-content-address";
+import { base64ToBytes } from "@red-cup-engineering/computer-content-address-engineering-services-section/semiotic-content-address-system";
 import { admitRelativePosixFilepath } from "@red-cup-engineering/computer-filepath-engineering-services-section/admit-relative-posix-filepath";
 import { compare, refusal } from "./manifest.mjs";
 
