@@ -1,4 +1,4 @@
-import { runJavascriptNodeOperation } from "@red-cup-engineering/javascript-node-services-section/operation";
+import { runJavascriptNodeOperation } from "@red-cup-engineering/javascript-node-engineering-services-section/operation";
 
 /** The output every operation shares: a success carrying ok: true, or a refusal carrying ok: false. */
 export const resultSchema = {
