@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { manifestSchema } from "../src/manifest.mjs";
-import { assessProvenanceRevisionImpact } from "../src/closure.mjs";
+import { assessOriginRevisionImpact } from "../src/closure.mjs";
 import { resultSchema, runCommand } from "../src/command.mjs";
 
-export { assessProvenanceRevisionImpact };
+export { assessOriginRevisionImpact };
 
 export const operationDefinition = {
   name: "assessProvenanceRevisionImpact",
@@ -49,7 +49,7 @@ export const operationDefinition = {
     },
   },
   outputSchema: resultSchema,
-  operation: assessProvenanceRevisionImpact,
+  operation: assessOriginRevisionImpact,
 };
 export const operation = operationDefinition;
 

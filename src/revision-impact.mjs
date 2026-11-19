@@ -28,7 +28,7 @@ const stableActivity = (a) => canonical({
 function refuse(message) { return { ok: false, refusal: { reason: "ImpactInputInvalid", message } }; }
 
 /** Call only AFTER both source manifests pass original schema/closure admission. */
-export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks = [] } = {}) {
+export function analyzeValidatedOriginRevision(previous, current, { rechecks = [] } = {}) {
   if (![previous, current].every(m => m && Array.isArray(m.entities) && Array.isArray(m.activities) && Array.isArray(m.agents))) {
     return refuse("both inputs must be admitted PROV manifest objects");
   }

@@ -7,7 +7,7 @@ export { manifestSchema };
 export const DEFAULT_BASE_IRI = "urn:provenance:";
 
 /** A domain refusal: the operation understood the request and declines it. */
-export function refusal(reason, message, extra = {}) {
+export function rejection(reason, message, extra = {}) {
   return Object.freeze({ ok: false, refusal: Object.freeze({ reason, message, ...extra }) });
 }
 
@@ -19,17 +19,17 @@ export function mintIri(baseIri, kind, id) {
 }
 
 /** Admit a manifest against the schema; returns the manifest with defaults filled, or a refusal. */
-export function admitManifest(manifest) {
+export function validateManifest(manifest) {
   if (manifest === null || typeof manifest !== "object" || Array.isArray(manifest)) {
-    return refusal("InvalidManifest", "manifest must be a JSON object");
+    return rejection("InvalidManifest", "manifest must be a JSON object");
   }
   const result = validateJsonSchema(manifest, manifestSchema);
   if (!result.valid) {
     const said = result.issues.map((issue) => `${issue.path || "/"} ${issue.keyword}: ${issue.message}`).join("; ");
-    return refusal("InvalidManifest", `manifest does not conform to provenance-manifest.schema.json: ${said}`);
+    return rejection("InvalidManifest", `manifest does not conform to provenance-manifest.schema.json: ${said}`);
   }
   for (const entity of manifest.entities) {
-    if (!isNiUri(entity.ni)) return refusal("InvalidManifest", `entity ${entity.id} ni is not a canonical RFC 6920 sha-256 ni: URI`);
+    if (!isNiUri(entity.ni)) return rejection("InvalidManifest", `entity ${entity.id} ni is not a canonical RFC 6920 sha-256 ni: URI`);
   }
   return Object.freeze({
     ok: true,

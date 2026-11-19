@@ -1,4 +1,4 @@
-import { admitManifest, compare, refusal } from "./manifest.mjs";
+import { validateManifest, compare, rejection } from "./manifest.mjs";
 
 const LISTS = new Set(["used", "generated", "wasAssociatedWith", "wasDerivedFrom", "wasAttributedTo"]);
 
@@ -30,17 +30,17 @@ function mergeDeclaration(kind, left, right) {
  * @param {{fragments: object[], baseIri?: string}} request
  * @returns {{ok: true, manifest: object} | {ok: false, refusal: object}}
  */
-export function composeProvenanceManifest(request) {
+export function composeOriginManifest(request) {
   if (request === null || typeof request !== "object" || !Array.isArray(request.fragments) || request.fragments.length === 0) {
-    return refusal("InvalidRequest", "request must carry a non-empty fragments array");
+    return rejection("InvalidRequest", "request must carry a non-empty fragments array");
   }
   const bases = new Set(request.fragments.map((fragment) => fragment?.baseIri).filter((base) => base !== undefined));
   if (request.baseIri === undefined && bases.size > 1) {
-    return refusal("ConflictingBaseIri", `fragments name ${bases.size} different baseIri values; pass baseIri to choose one`);
+    return rejection("ConflictingBaseIri", `fragments name ${bases.size} different baseIri values; pass baseIri to choose one`);
   }
   const composed = { baseIri: request.baseIri ?? [...bases][0], agents: new Map(), activities: new Map(), entities: new Map() };
   for (const [index, fragment] of request.fragments.entries()) {
-    if (fragment === null || typeof fragment !== "object" || Array.isArray(fragment)) return refusal("InvalidRequest", `fragment ${index} must be an object`);
+    if (fragment === null || typeof fragment !== "object" || Array.isArray(fragment)) return rejection("InvalidRequest", `fragment ${index} must be an object`);
     for (const [kind, table] of [["agents", composed.agents], ["activities", composed.activities], ["entities", composed.entities]]) {
       for (const declaration of fragment[kind] ?? []) {
         const previous = table.get(declaration?.id);
@@ -49,7 +49,7 @@ export function composeProvenanceManifest(request) {
           continue;
         }
         const { merged, conflict } = mergeDeclaration(kind.slice(0, -1).replace(/ie$/u, "y"), previous, declaration);
-        if (conflict) return refusal("ConflictingDeclaration", conflict);
+        if (conflict) return rejection("ConflictingDeclaration", conflict);
         table.set(declaration.id, merged);
       }
     }
@@ -61,6 +61,6 @@ export function composeProvenanceManifest(request) {
     activities: ordered(composed.activities),
     entities: ordered(composed.entities),
   };
-  const admitted = admitManifest(manifest);
-  return admitted.ok ? Object.freeze({ ok: true, manifest }) : admitted;
+  const validated = validateManifest(manifest);
+  return validated.ok ? Object.freeze({ ok: true, manifest }) : validated;
 }

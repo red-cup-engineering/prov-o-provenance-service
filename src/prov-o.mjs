@@ -3,8 +3,8 @@ import { nquadLine } from "@red-cup-engineering/computer-triplet-serialized-cont
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
 import { compactStatementsAsJsonLd } from "@red-cup-engineering/json-ld-services-section/json-ld";
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
-import { admitManifest, compare, indexManifest, mintIri, refusal } from "./manifest.mjs";
-import { provenanceGaps } from "./closure.mjs";
+import { validateManifest, compare, indexManifest, mintIri, rejection } from "./manifest.mjs";
+import { originGaps } from "./closure.mjs";
 import spdxVocabulary from "../data/records/spdx-license-identifiers-v3.29.0.json" with { type: "json" };
 
 export const PROV = "http://www.w3.org/ns/prov#";
@@ -136,15 +136,15 @@ export function provJsonLd(statements) {
  * @param {object} manifest A build provenance manifest.
  * @returns {Promise<object>} `{ok: true, turtle, jsonLd, canonicalNi, tripleCount, closure}` or a refusal.
  */
-export async function projectProvenanceAsProvO(manifest) {
-  const admitted = admitManifest(manifest);
-  if (!admitted.ok) return admitted;
-  const closure = provenanceGaps(admitted.manifest);
+export async function projectOriginAsProvO(manifest) {
+  const validated = validateManifest(manifest);
+  if (!validated.ok) return validated;
+  const closure = originGaps(validated.manifest);
   if (!closure.closed) {
     const errors = closure.gaps.filter((gap) => gap.severity === "error");
-    return refusal("ProvenanceNotClosed", `${errors.length} provenance gap(s) leave references dangling: ${errors.slice(0, 3).map((gap) => `${gap.kind} ${gap.subject.id}`).join("; ")}`, { gaps: errors });
+    return rejection("ProvenanceNotClosed", `${errors.length} provenance gap(s) leave references dangling: ${errors.slice(0, 3).map((gap) => `${gap.kind} ${gap.subject.id}`).join("; ")}`, { gaps: errors });
   }
-  const statements = provStatements(admitted.manifest);
+  const statements = provStatements(validated.manifest);
   const turtle = await canonicalizeNQuads(`${statements.map(nquadLine).join("\n")}\n`);
   const canonical = turtle.split("\n").filter((line) => line !== "");
   return Object.freeze({

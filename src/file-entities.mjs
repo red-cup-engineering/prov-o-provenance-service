@@ -1,7 +1,7 @@
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
 import { base64ToBytes } from "@red-cup-engineering/semiotic-content-address-system";
-import { admitRelativePosixFilepath } from "@red-cup-engineering/computer-filepath-engineering-services-section/admit-relative-posix-filepath";
-import { compare, refusal } from "./manifest.mjs";
+import { validateRelativePosixFilepath } from "@red-cup-engineering/computer-filepath-engineering-services-section/admit-relative-posix-filepath";
+import { compare, rejection } from "./manifest.mjs";
 
 const MEDIA_TYPES = Object.freeze({
   md: "text/markdown", markdown: "text/markdown", txt: "text/plain", tex: "application/x-tex", bib: "application/x-bibtex",
@@ -21,7 +21,7 @@ export function mediaTypeForPath(path) {
 
 /** Whether `path` is a normalized relative POSIX filepath beneath its root (the house filepath admission; a trailing slash names no file). */
 function safePath(path) {
-  try { admitRelativePosixFilepath(path); } catch { return false; }
+  try { validateRelativePosixFilepath(path); } catch { return false; }
   return !path.endsWith("/");
 }
 
@@ -36,22 +36,22 @@ function decodeBase64(text) {
  * @param {{files: {path: string, bytesBase64: string, mediaType?: string, id?: string, git?: object, license?: string, rights?: string, usageInfo?: string, creditText?: string, wasDerivedFrom?: string[], wasAttributedTo?: string[]}[]}} request
  * @returns {{ok: true, entities: object[]}|{ok: false, refusal: object}}
  */
-export function computeFileProvenanceEntities(request) {
+export function computeFileOriginEntities(request) {
   if (request === null || typeof request !== "object" || !Array.isArray(request.files)) {
-    return refusal("InvalidRequest", "request must be an object with a files array");
+    return rejection("InvalidRequest", "request must be an object with a files array");
   }
   const entities = [], paths = new Set(), ids = new Set();
   for (const file of request.files) {
-    if (file === null || typeof file !== "object") return refusal("InvalidRequest", "each file must be an object");
-    if (!safePath(file.path)) return refusal("InvalidPath", `path ${JSON.stringify(file.path)} must be relative, "/"-separated and free of empty, "." and ".." segments`);
-    if (paths.has(file.path)) return refusal("DuplicatePath", `path ${file.path} appears more than once`);
+    if (file === null || typeof file !== "object") return rejection("InvalidRequest", "each file must be an object");
+    if (!safePath(file.path)) return rejection("InvalidPath", `path ${JSON.stringify(file.path)} must be relative, "/"-separated and free of empty, "." and ".." segments`);
+    if (paths.has(file.path)) return rejection("DuplicatePath", `path ${file.path} appears more than once`);
     paths.add(file.path);
     const bytes = decodeBase64(file.bytesBase64);
-    if (bytes === undefined) return refusal("InvalidBase64", `bytesBase64 of ${file.path} is not canonical base64`);
+    if (bytes === undefined) return rejection("InvalidBase64", `bytesBase64 of ${file.path} is not canonical base64`);
     const mediaType = file.mediaType ?? mediaTypeForPath(file.path);
     const address = addressContent(bytes, { mediaType });
     const id = file.id ?? file.path;
-    if (ids.has(id)) return refusal("DuplicateId", `entity id ${id} appears more than once`);
+    if (ids.has(id)) return rejection("DuplicateId", `entity id ${id} appears more than once`);
     ids.add(id);
     entities.push({
       id, path: file.path, ni: address.ni, bytes: address.size, mediaType,
