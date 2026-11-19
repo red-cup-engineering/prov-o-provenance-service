@@ -1,0 +1,64 @@
+name: Original PROV-O source revision and package conformance
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/spdx-license-identifiers-*.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/revision-impact.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/spdx-license-identifiers-*.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/revision-impact.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-impact:
+    env:
+      npm_config_registry: https://registry.561.group/
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check original pure revision-impact law and negative controls
+        run: |
+          node --check src/revision-impact.mjs
+          node --test test/revision-impact.test.mjs
+      - name: Install original published package dependency closure
+        # One bounded, no-retry receiving attempt: house scope tarball requests
+        # must not stampede the original registry after observed HTTP 429.
+        # Every dependency still comes from the exact integrity-pinned lockfile.
+        run: npm ci --no-audit --no-fund --maxsockets=1 --fetch-retries=0
+      - name: Verify native schema, source-use RDF/JSON-LD, composition and all original tests
+        run: npm test
+      - name: Verify redistributable package includes the pinned official source vocabulary
+        run: |
+          npm pack --dry-run --json > /tmp/prov-o-pack.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const packages = JSON.parse(readFileSync("/tmp/prov-o-pack.json", "utf8"));
+            if (packages.length !== 1) throw new Error("expected one original package");
+            const files = new Set(packages[0].files.map(({path}) => path));
+            for (const needed of [
+              "index.mjs",
+              "src/prov-o.mjs",
+              "data/records/spdx-license-identifiers-v3.29.0.json",
+              "data/records/schema/provenance-manifest.schema.json",
+            ]) {
+              if (!files.has(needed)) throw new Error("published package omits " + needed);
+            }
+            console.log("Packed original PROV-O and pinned SPDX reference: verified");
+          '

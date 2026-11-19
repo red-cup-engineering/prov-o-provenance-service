@@ -1,0 +1,306 @@
+{
+  "name": "Provenance Closure Check",
+  "gateway": "provenance",
+  "gatewayPackageName": "@red-cup-engineering/prov-o-provenance-service",
+  "section": "lib/emsenn/services/561-group/services/engineering-services-section/services/computer-engineering-services-section/services/computer-data-engineering-services-section/services/computer-content-engineering-services-section/services/computer-serialized-content-engineering-services-section/services/computer-triplet-serialized-content-engineering-services-section/services/prov-o-provenance-service",
+  "operation": "check-provenance-closure",
+  "origin": "https://market.561.group",
+  "route": "/v1/check-provenance-closure",
+  "method": "POST",
+  "price": "$0.002",
+  "category": "data",
+  "output": {
+    "schema": {
+      "type": "object",
+      "required": [
+        "ok"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "gaps": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "refusal": {
+          "type": "object"
+        }
+      }
+    },
+    "example": {
+      "ok": true,
+      "closed": true,
+      "gaps": [],
+      "summary": {
+        "agents": 2,
+        "activities": 1,
+        "entities": 2,
+        "roots": [
+          "manuscript.md"
+        ],
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  },
+  "framings": [
+    {
+      "key": "default",
+      "title": "Provenance Closure Check",
+      "description": "Check that a build provenance manifest closes: derived entities have generating activities and every used, generated, derived-from, attributed-to, associated, delegated and plan reference is declared. Reports each gap with severity.",
+      "tags": [
+        "provenance",
+        "prov-o",
+        "validation",
+        "audit"
+      ],
+      "serviceName": "check-provenance-closure"
+    }
+  ],
+  "ledgerAccount": "Income:Sales:X402:Provenance",
+  "markets": [
+    "x402-bazaar",
+    "402index",
+    "house-capability-market",
+    "house-seller-catalog"
+  ],
+  "compute": {
+    "package": "@red-cup-engineering/prov-o-provenance-service",
+    "subpath": "./check-provenance-closure",
+    "export": "checkProvenanceClosure",
+    "args": [
+      "body"
+    ]
+  },
+  "runtime": "node",
+  "saleStatus": "held",
+  "seller": {
+    "enterprise": "engineering",
+    "entity": "561-group-llc",
+    "record": {
+      "path": "lib/emsenn/services/561-group/services/engineering-services-section/lib/agency/enterprises/engineering.json",
+      "sha256": "6af4ed9d1e4612b0383267e7ffe0ad028c52164ee3c5136110d434384a29c39f"
+    }
+  },
+  "resources": [
+    "CPU: reference resolution over the manifest"
+  ],
+  "bodyExample": {
+    "baseIri": "https://example.org/prov/",
+    "agents": [
+      {
+        "id": "author",
+        "name": "A. Author",
+        "kind": "person"
+      },
+      {
+        "id": "pandoc",
+        "name": "pandoc 3.1.3",
+        "kind": "software",
+        "actedOnBehalfOf": "author"
+      }
+    ],
+    "activities": [
+      {
+        "id": "render-html",
+        "label": "Render HTML",
+        "startedAt": "2026-10-24T12:00:00Z",
+        "endedAt": "2026-10-24T12:00:02Z",
+        "used": [
+          "manuscript.md"
+        ],
+        "generated": [
+          "build/manuscript.html"
+        ],
+        "wasAssociatedWith": [
+          {
+            "agent": "pandoc",
+            "role": "renderer"
+          }
+        ]
+      }
+    ],
+    "entities": [
+      {
+        "id": "build/manuscript.html",
+        "path": "build/manuscript.html",
+        "ni": "ni:///sha-256;NnnhWwPY0d8q7KFWjphTiW3ca3h3fse6R6kTZQmaWug",
+        "bytes": 15,
+        "mediaType": "text/html",
+        "wasDerivedFrom": [
+          "manuscript.md"
+        ],
+        "wasAttributedTo": []
+      },
+      {
+        "id": "manuscript.md",
+        "path": "manuscript.md",
+        "ni": "ni:///sha-256;4BsX_5r3cFZ5L2fFfj0ZCHlbnRrkz-ckIdCig4mRt0A",
+        "bytes": 8,
+        "mediaType": "text/markdown",
+        "wasDerivedFrom": [],
+        "wasAttributedTo": [
+          "author"
+        ],
+        "license": "CC-BY-4.0"
+      }
+    ]
+  },
+  "bodySchema": {
+    "type": "object",
+    "required": [
+      "agents",
+      "activities",
+      "entities"
+    ],
+    "properties": {
+      "baseIri": {
+        "type": "string",
+        "description": "IRI prefix under which non-IRI ids are minted."
+      },
+      "agents": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "name",
+            "kind"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "person",
+                "software",
+                "organization",
+                "ai-system"
+              ]
+            },
+            "actedOnBehalfOf": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "activities": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "label",
+            "startedAt",
+            "endedAt"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            },
+            "endedAt": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "string"
+            },
+            "used": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "generated": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "wasAssociatedWith": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "agent",
+                  "role"
+                ],
+                "properties": {
+                  "agent": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "entities": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "path",
+            "ni",
+            "bytes",
+            "mediaType"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "ni": {
+              "type": "string"
+            },
+            "bytes": {
+              "type": "integer"
+            },
+            "mediaType": {
+              "type": "string"
+            },
+            "git": {
+              "type": "object"
+            },
+            "wasDerivedFrom": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "wasAttributedTo": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "license": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
