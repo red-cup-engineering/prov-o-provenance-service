@@ -1,9 +1,10 @@
+import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
 import { iriTerm, literal } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-terms";
 import { nquadLine } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/n-quads";
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
 import { compactStatementsAsJsonLd } from "@red-cup-engineering/json-ld-services-section/json-ld";
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
-import { admitManifest, compare, indexManifest, mintIri, refusal } from "./manifest.mjs";
+import { admitManifest, indexManifest, mintIri, refusal } from "./manifest.mjs";
 import { provenanceGaps } from "./closure.mjs";
 import spdxVocabulary from "../data/records/spdx-license-identifiers-v3.29.0.json" with { type: "json" };
 

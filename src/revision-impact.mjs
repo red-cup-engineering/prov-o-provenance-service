@@ -1,14 +1,15 @@
+import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
 /**
  * Pure impact screening over two ALREADY ADMITTED, CLOSED PROV manifests.
  * This is a conservative dependency readout; it cannot establish claim falsity.
  */
-const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+
 const canonical = (x) => {
   if (Array.isArray(x)) return "[" + x.map(canonical).join(",") + "]";
-  if (x && typeof x === "object") return "{" + Object.keys(x).sort(cmp).filter(k => x[k] !== undefined).map(k => JSON.stringify(k) + ":" + canonical(x[k])).join(",") + "}";
+  if (x && typeof x === "object") return "{" + Object.keys(x).sort(compareText).filter(k => x[k] !== undefined).map(k => JSON.stringify(k) + ":" + canonical(x[k])).join(",") + "}";
   return JSON.stringify(x);
 };
-const list = (xs = []) => [...xs].sort(cmp);
+const list = (xs = []) => [...xs].sort(compareText);
 const mapById = (xs) => new Map(xs.map(x => [x.id, x]));
 const stableEntity = (e) => canonical({
   path: e.path, bytes: e.bytes, mediaType: e.mediaType,
@@ -23,7 +24,7 @@ const stableEntity = (e) => canonical({
 const stableAgent = (a) => canonical(a);
 const stableActivity = (a) => canonical({
   ...a, used: list(a.used ?? []), generated: list(a.generated ?? []),
-  wasAssociatedWith: [...(a.wasAssociatedWith ?? [])].map(canonical).sort(cmp),
+  wasAssociatedWith: [...(a.wasAssociatedWith ?? [])].map(canonical).sort(compareText),
 });
 function refuse(message) { return { ok: false, refusal: { reason: "ImpactInputInvalid", message } }; }
 
@@ -84,8 +85,8 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
     return refuse("recheck bindings must name stable original PROV entity ids");
   }
   const orderedRechecks = [...rechecks].sort((a,b) =>
-    cmp(a.propositionAddress,b.propositionAddress) || cmp(a.entityId,b.entityId));
-  const ids = [...new Set([...old.keys(), ...now.keys()])].sort(cmp);
+    compareText(a.propositionAddress,b.propositionAddress) || compareText(a.entityId,b.entityId));
+  const ids = [...new Set([...old.keys(), ...now.keys()])].sort(compareText);
   for (const id of ids) {
     const prior = old.get(id), latest = now.get(id);
     if (!prior) addReason(id, "entity-added");
@@ -101,9 +102,9 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
   // The same existing PROV dependency graph performs all downstream traversal.
   for (const { entityId } of orderedRechecks) addReason(entityId, "signchain-original-evidence-recheck");
   const changedActivities = [...new Set([...oldActs.keys(), ...nowActs.keys()])]
-    .filter(id => canonical(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== canonical(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(cmp);
+    .filter(id => canonical(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== canonical(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(compareText);
   const changedAgents = [...new Set([...oldAgents.keys(), ...nowAgents.keys()])]
-    .filter(id => (oldAgents.has(id) ? stableAgent(oldAgents.get(id)) : null) !== (nowAgents.has(id) ? stableAgent(nowAgents.get(id)) : null)).sort(cmp);
+    .filter(id => (oldAgents.has(id) ? stableAgent(oldAgents.get(id)) : null) !== (nowAgents.has(id) ? stableAgent(nowAgents.get(id)) : null)).sort(compareText);
   // Provenance responsibility extends through source-admitted prov:actedOnBehalfOf.
   // A principal's revised identity/accountability can require review of an
   // unchanged delegate's output. Retain both editions' delegation relations:
@@ -136,11 +137,11 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
     }
     for (const e of m.entities) if ((e.wasAttributedTo ?? []).some(id => responsibilityAffected.has(id))) addReason(e.id, "responsibility-changed");
   }
-  const seeds = [...direct.keys()].sort(cmp), queue = [...seeds];
+  const seeds = [...direct.keys()].sort(compareText), queue = [...seeds];
   const witness = new Map(seeds.map(id => [id, { source: id, path: [id], edgeKinds: [] }]));
   for (let i = 0; i < queue.length; i += 1) {
     const src = queue[i];
-    const successors = [...(graph.get(src)?.entries() ?? [])].sort((a, b) => cmp(a[0], b[0]));
+    const successors = [...(graph.get(src)?.entries() ?? [])].sort((a, b) => compareText(a[0], b[0]));
     for (const [dst, edgeKinds] of successors) {
       if (witness.has(dst)) continue;
       const ancestor = witness.get(src);
@@ -185,7 +186,7 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
   const directChanges = seeds.map(id => ({
     id, reasons: list(direct.get(id)), previousNi: old.get(id)?.ni ?? null, currentNi: now.get(id)?.ni ?? null,
   }));
-  const affected = [...witness.entries()].sort((a, b) => cmp(a[0], b[0])).map(([id, w]) => ({
+  const affected = [...witness.entries()].sort((a, b) => compareText(a[0], b[0])).map(([id, w]) => ({
     id, direct: direct.has(id), sourceOfChange: w.source,
     sourcesOfChange: list(sourcesByAffected.get(id) ?? []), path: w.path, edgeKinds: w.edgeKinds,
     existsInCurrent: now.has(id), unchangedBytes: old.has(id) && now.has(id) && old.get(id).ni === now.get(id).ni,

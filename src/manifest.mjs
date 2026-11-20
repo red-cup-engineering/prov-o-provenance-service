@@ -1,3 +1,4 @@
+import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
 import { validateJsonSchema } from "@red-cup-engineering/json-schema-engineering-services-section/validation";
 import { isNiUri } from "@red-cup-engineering/uri-engineering-services-section/ni-uri";
 import manifestSchema from "../data/records/schema/provenance-manifest.schema.json" with { type: "json" };
@@ -67,6 +68,4 @@ export function indexManifest(manifest) {
 }
 
 /** Code-point order, independent of locale. */
-export function compare(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
+

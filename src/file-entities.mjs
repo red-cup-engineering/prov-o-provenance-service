@@ -1,7 +1,8 @@
+import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
 import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
 import { base64ToBytes } from "@red-cup-engineering/semiotic-content-address-system";
 import { admitRelativePosixFilepath } from "@red-cup-engineering/computer-filepath-engineering-services-section/admit-relative-posix-filepath";
-import { compare, refusal } from "./manifest.mjs";
+import { refusal } from "./manifest.mjs";
 
 const MEDIA_TYPES = Object.freeze({
   md: "text/markdown", markdown: "text/markdown", txt: "text/plain", tex: "application/x-tex", bib: "application/x-bibtex",
@@ -64,6 +65,6 @@ export function computeFileProvenanceEntities(request) {
       ...(file.creditText === undefined ? {} : { creditText: file.creditText }),
     });
   }
-  entities.sort((left, right) => compare(left.path, right.path));
+  entities.sort((left, right) => compareText(left.path, right.path));
   return Object.freeze({ ok: true, entities });
 }

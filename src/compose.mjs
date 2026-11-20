@@ -1,4 +1,5 @@
-import { admitManifest, compare, refusal } from "./manifest.mjs";
+import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
+import { admitManifest, refusal } from "./manifest.mjs";
 
 const LISTS = new Set(["used", "generated", "wasAssociatedWith", "wasDerivedFrom", "wasAttributedTo"]);
 
@@ -15,7 +16,7 @@ function mergeDeclaration(kind, left, right) {
       merged[field] = value;
     } else if (LISTS.has(field)) {
       const byKey = new Map([...merged[field], ...value].map((member) => [memberKey(member), member]));
-      merged[field] = [...byKey.keys()].sort(compare).map((key) => byKey.get(key));
+      merged[field] = [...byKey.keys()].sort(compareText).map((key) => byKey.get(key));
     } else if (JSON.stringify(merged[field]) !== JSON.stringify(value)) {
       return { conflict: `${kind} ${left.id} declares ${field} twice with different values` };
     }
@@ -54,7 +55,7 @@ export function composeProvenanceManifest(request) {
       }
     }
   }
-  const ordered = (table) => [...table.values()].sort((a, b) => compare(String(a.id), String(b.id)));
+  const ordered = (table) => [...table.values()].sort((a, b) => compareText(String(a.id), String(b.id)));
   const manifest = {
     ...(composed.baseIri === undefined ? {} : { baseIri: composed.baseIri }),
     agents: ordered(composed.agents),
