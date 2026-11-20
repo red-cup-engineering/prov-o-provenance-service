@@ -1,6 +1,6 @@
 import { createGraph, cycles } from "@red-cup-engineering/metrologic/models/graphs/directed-multigraph";
-import { validateManifest, compare, indexManifest, rejection } from "./manifest.mjs";
-import { analyzeValidatedOriginRevision } from "./revision-impact.mjs";
+import { admitManifest, compare, indexManifest, refusal } from "./manifest.mjs";
+import { analyzeAdmittedProvenanceRevision } from "./revision-impact.mjs";
 
 const error = (kind, subject, message, reference) => ({ kind, severity: "error", subject, ...(reference === undefined ? {} : { reference }), message });
 const warning = (kind, subject, message, reference) => ({ kind, severity: "warning", subject, ...(reference === undefined ? {} : { reference }), message });
@@ -23,7 +23,7 @@ function cycleMembers(edges) {
  * Report every way an admitted manifest fails to close as a provenance record. Pure: no
  * reading, no clock. `closed` holds when no gap has severity "error".
  */
-export function originGaps(manifest) {
+export function provenanceGaps(manifest) {
   const index = indexManifest(manifest);
   const gaps = [];
   const agent = (id) => ({ type: "agent", id }), activity = (id) => ({ type: "activity", id }), entity = (id) => ({ type: "entity", id });
@@ -148,10 +148,10 @@ export function originGaps(manifest) {
  * @param {object} manifest A build provenance manifest.
  * @returns {{ok: true, closed: boolean, gaps: object[], summary: object}|{ok: false, refusal: object}}
  */
-export function checkOriginClosure(manifest) {
-  const validated = validateManifest(manifest);
-  if (!validated.ok) return validated;
-  return Object.freeze({ ok: true, ...originGaps(validated.manifest) });
+export function checkProvenanceClosure(manifest) {
+  const admitted = admitManifest(manifest);
+  if (!admitted.ok) return admitted;
+  return Object.freeze({ ok: true, ...provenanceGaps(admitted.manifest) });
 }
 
 
@@ -161,7 +161,7 @@ export function checkOriginClosure(manifest) {
  * agreement, not the witnesses, producer identity, source clocks or mapping
  * authority. Only previously admitted PROV logical entities can be impacted.
  */
-function validateOriginalEvidenceRechecks(signchainComparison, propositionEntities, previous, current) {
+function qualifyOriginalEvidenceRechecks(signchainComparison, propositionEntities, previous, current) {
   if (signchainComparison === undefined && propositionEntities === undefined) {
     return { ok: true, bindings: [] };
   }
@@ -175,7 +175,7 @@ function validateOriginalEvidenceRechecks(signchainComparison, propositionEntiti
       signchainComparison.comparisons.length !== signchainComparison.monitoredPropositionCount ||
       signchainComparison.changedPropositionAddresses.length > 128 ||
       !Array.isArray(propositionEntities)) {
-    return rejection("InvalidSignChainComparison",
+    return refusal("InvalidSignChainComparison",
       "provide both a bounded original SignChain comparison and explicit proposition/entity bindings");
   }
   const positions = new Set(), changed = [];
@@ -188,7 +188,7 @@ function validateOriginalEvidenceRechecks(signchainComparison, propositionEntiti
         typeof entry.observationsChanged !== "boolean" ||
         typeof entry.requiresReverification !== "boolean" ||
         entry.requiresReverification !== (entry.witnessesChanged || entry.observationsChanged)) {
-      return rejection("InvalidSignChainComparison",
+      return refusal("InvalidSignChainComparison",
         "comparison entries must be unique original proposition addresses with consistent evidence-delta flags");
     }
     positions.add(entry.propositionAddress);
@@ -198,12 +198,12 @@ function validateOriginalEvidenceRechecks(signchainComparison, propositionEntiti
   if (declared.some(x => typeof x !== "string" || !x.trim() || x.length > 1024) ||
       new Set(declared).size !== declared.length ||
       JSON.stringify([...declared].sort(compare)) !== JSON.stringify(changed.sort(compare))) {
-    return rejection("InvalidSignChainComparison",
+    return refusal("InvalidSignChainComparison",
       "changed proposition addresses do not match original SignChain comparison flags");
   }
   if (propositionEntities.length !== changed.length ||
       propositionEntities.length > 128) {
-    return rejection("UnqualifiedPropositionMapping",
+    return refusal("UnqualifiedPropositionMapping",
       "every changed original proposition must have exactly one declared PROV logical entity binding");
   }
   const beforeIds = new Set(previous.entities.map(x => x.id));
@@ -216,7 +216,7 @@ function validateOriginalEvidenceRechecks(signchainComparison, propositionEntiti
         mapped.has(entry.propositionAddress) ||
         typeof entry.entityId !== "string" ||
         !beforeIds.has(entry.entityId) || !afterIds.has(entry.entityId)) {
-      return rejection("UnqualifiedPropositionMapping",
+      return refusal("UnqualifiedPropositionMapping",
         "mapping must be one-to-one by changed SignChain address, targeting a stable entity id in both closed PROV editions");
     }
     mapped.set(entry.propositionAddress, entry.entityId);
@@ -230,21 +230,21 @@ function validateOriginalEvidenceRechecks(signchainComparison, propositionEntiti
  * Only signals downstream objects requiring scientific review; does not prove false claims.
  * Uses the existing schema admission and closure checks before graph traversal.
  */
-export function assessOriginRevisionImpact({ previous, current, signchainComparison, propositionEntities } = {}) {
-  const earlier = validateManifest(previous);
-  if (!earlier.ok) return rejection("InvalidPreviousManifest", earlier.refusal.message);
-  const later = validateManifest(current);
-  if (!later.ok) return rejection("InvalidCurrentManifest", later.refusal.message);
+export function assessProvenanceRevisionImpact({ previous, current, signchainComparison, propositionEntities } = {}) {
+  const earlier = admitManifest(previous);
+  if (!earlier.ok) return refusal("InvalidPreviousManifest", earlier.refusal.message);
+  const later = admitManifest(current);
+  if (!later.ok) return refusal("InvalidCurrentManifest", later.refusal.message);
   if (earlier.manifest.baseIri !== later.manifest.baseIri) {
-    return rejection("IncompatibleManifestBases", "manifest editions do not share the same logical entity namespace");
+    return refusal("IncompatibleManifestBases", "manifest editions do not share the same logical entity namespace");
   }
   for (const [edition, manifest] of [["previous", earlier.manifest], ["current", later.manifest]]) {
-    const closure = originGaps(manifest);
-    if (!closure.closed) return rejection("ProvenanceNotClosed", edition + " manifest contains unresolved provenance", { edition, gaps: closure.gaps.filter(g => g.severity === "error") });
+    const closure = provenanceGaps(manifest);
+    if (!closure.closed) return refusal("ProvenanceNotClosed", edition + " manifest contains unresolved provenance", { edition, gaps: closure.gaps.filter(g => g.severity === "error") });
   }
-  const qualified = validateOriginalEvidenceRechecks(signchainComparison, propositionEntities,
+  const qualified = qualifyOriginalEvidenceRechecks(signchainComparison, propositionEntities,
     earlier.manifest, later.manifest);
   if (!qualified.ok) return qualified;
-  return analyzeValidatedOriginRevision(earlier.manifest, later.manifest,
+  return analyzeAdmittedProvenanceRevision(earlier.manifest, later.manifest,
     { rechecks: qualified.bindings });
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { computeFileOriginEntities } from "../src/file-entities.mjs";
+import { computeFileProvenanceEntities } from "../src/file-entities.mjs";
 import { resultSchema, runCommand } from "../src/command.mjs";
 
-export { computeFileOriginEntities };
+export { computeFileProvenanceEntities };
 
 export const operationDefinition = {
   name: "computeFileProvenanceEntities",
@@ -27,7 +27,7 @@ export const operationDefinition = {
     },
   },
   outputSchema: resultSchema,
-  operation: computeFileOriginEntities,
+  operation: computeFileProvenanceEntities,
 };
 export const operation = operationDefinition;
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { composeOriginManifest } from "../src/compose.mjs";
+import { composeProvenanceManifest } from "../src/compose.mjs";
 import { resultSchema, runCommand } from "../src/command.mjs";
 
-export { composeOriginManifest };
+export { composeProvenanceManifest };
 
 export const operationDefinition = {
   name: "composeProvenanceManifest",
@@ -16,7 +16,7 @@ export const operationDefinition = {
     },
   },
   outputSchema: resultSchema,
-  operation: composeOriginManifest,
+  operation: composeProvenanceManifest,
 };
 export const operation = operationDefinition;
 
