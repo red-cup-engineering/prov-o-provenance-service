@@ -24,7 +24,7 @@
     "./compute-file-provenance-entities": "./scripts/compute-file-provenance-entities.mjs",
     "./check-provenance-closure": "./scripts/check-provenance-closure.mjs",
     "./assess-provenance-revision-impact": "./scripts/assess-provenance-revision-impact.mjs",
-    "./provenance-manifest.schema.json": "./data/records/schema/provenance-manifest.schema.json",
+    "./provenance-manifest.schema.json": "./data/records/schemas/provenance-manifest.schema.json",
     "./compose-provenance-manifest": "./scripts/compose-provenance-manifest.mjs"
   },
   "bin": {

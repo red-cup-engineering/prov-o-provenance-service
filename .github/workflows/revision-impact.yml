@@ -4,7 +4,7 @@ on:
     paths:
       - 'src/**'
       - 'test/**'
-      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/schemas/provenance-manifest.schema.json'
       - 'data/records/spdx-license-identifiers-*.json'
       - 'package.json'
       - 'package-lock.json'
@@ -14,7 +14,7 @@ on:
     paths:
       - 'src/**'
       - 'test/**'
-      - 'data/records/schema/provenance-manifest.schema.json'
+      - 'data/records/schemas/provenance-manifest.schema.json'
       - 'data/records/spdx-license-identifiers-*.json'
       - 'package.json'
       - 'package-lock.json'
@@ -56,7 +56,7 @@ jobs:
               "index.mjs",
               "src/prov-o.mjs",
               "data/records/spdx-license-identifiers-v3.29.0.json",
-              "data/records/schema/provenance-manifest.schema.json",
+              "data/records/schemas/provenance-manifest.schema.json",
             ]) {
               if (!files.has(needed)) throw new Error("published package omits " + needed);
             }

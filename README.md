@@ -9,7 +9,7 @@
 Turns the provenance a build already holds — `ni:` content addresses, git source
 records, who did what and when — into W3C PROV-O (`http://www.w3.org/ns/prov#`),
 as canonical Turtle and JSON-LD. The original operations use one input, the **build
-provenance manifest** (`data/records/schema/provenance-manifest.schema.json`):
+provenance manifest** (`data/records/schemas/provenance-manifest.schema.json`):
 
 ```jsonc
 {
