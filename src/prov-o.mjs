@@ -1,4 +1,5 @@
 import { addressContent, compareText, sha256Base64Url } from "@red-cup-engineering/semiotic-content-address-system";
+import { canonicalJson } from "@red-cup-engineering/json-engine/canonical-json";
 import { iriTerm, literal } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-terms";
 import { nquadLine } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/n-quads";
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
@@ -70,7 +71,7 @@ export function provStatements(manifest) {
     const plan = activity.plan === undefined ? undefined : entityIri(activity.plan);
     for (const { agent: agentId, role } of activity.wasAssociatedWith) {
       const agent = agentIri(agentId), roleIri = mintIri(base, "role", role);
-      const association = `${base}association/${sha256Base64Url(`${subject}\u0000${agent}\u0000${role}`)}`;
+      const association = `${base}association/${sha256Base64Url(canonicalJson([subject, agent, role]))}`;
       add(subject, `${PROV}wasAssociatedWith`, iriTerm(agent));
       add(subject, `${PROV}qualifiedAssociation`, iriTerm(association));
       type(association, "Association");
@@ -81,7 +82,7 @@ export function provStatements(manifest) {
       add(roleIri, `${RDFS}label`, literal(role));
       const principal = index.agents.get(agentId)?.actedOnBehalfOf;
       if (principal !== undefined) {
-        const delegation = `${base}delegation/${sha256Base64Url(`${subject}\u0000${agent}\u0000${principal}`)}`;
+        const delegation = `${base}delegation/${sha256Base64Url(canonicalJson([subject, agent, principal]))}`;
         add(agent, `${PROV}qualifiedDelegation`, iriTerm(delegation));
         type(delegation, "Delegation");
         add(delegation, `${PROV}agent`, iriTerm(agentIri(principal)));

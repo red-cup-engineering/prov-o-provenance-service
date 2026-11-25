@@ -52,6 +52,7 @@
     "@red-cup-engineering/json-ld-services-section": "^0.1.1",
     "@red-cup-engineering/metrologic": "^0.22.3",
     "@red-cup-engineering/node-js-function-engineering-services-section": "^0.5.4",
+    "@red-cup-engineering/json-engine": "^0.5.0",
     "@red-cup-engineering/semiotic-content-address-system": "^0.1.5"
   },
   "devDependencies": {
