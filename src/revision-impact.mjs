@@ -1,17 +1,12 @@
-import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
+import { compareText, coincidenceKey } from "@red-cup-engineering/semiotic-content-address-system";
 /**
  * Pure impact screening over two ALREADY ADMITTED, CLOSED PROV manifests.
  * This is a conservative dependency readout; it cannot establish claim falsity.
  */
 
-const canonical = (x) => {
-  if (Array.isArray(x)) return "[" + x.map(canonical).join(",") + "]";
-  if (x && typeof x === "object") return "{" + Object.keys(x).sort(compareText).filter(k => x[k] !== undefined).map(k => JSON.stringify(k) + ":" + canonical(x[k])).join(",") + "}";
-  return JSON.stringify(x);
-};
 const list = (xs = []) => [...xs].sort(compareText);
 const mapById = (xs) => new Map(xs.map(x => [x.id, x]));
-const stableEntity = (e) => canonical({
+const stableEntity = (e) => coincidenceKey({
   path: e.path, bytes: e.bytes, mediaType: e.mediaType,
   git: e.git ?? null, license: e.license ?? null,
   // Source-use guidance, attributed credit, and rights testimony are not
@@ -21,10 +16,10 @@ const stableEntity = (e) => canonical({
   creditText: e.creditText ?? null,
   wasAttributedTo: list(e.wasAttributedTo ?? []),
 });
-const stableAgent = (a) => canonical(a);
-const stableActivity = (a) => canonical({
+const stableAgent = (a) => coincidenceKey(a);
+const stableActivity = (a) => coincidenceKey({
   ...a, used: list(a.used ?? []), generated: list(a.generated ?? []),
-  wasAssociatedWith: [...(a.wasAssociatedWith ?? [])].map(canonical).sort(compareText),
+  wasAssociatedWith: [...(a.wasAssociatedWith ?? [])].map(coincidenceKey).sort(compareText),
 });
 function refuse(message) { return { ok: false, refusal: { reason: "ImpactInputInvalid", message } }; }
 
@@ -95,14 +90,14 @@ export function analyzeAdmittedProvenanceRevision(previous, current, { rechecks 
       if (prior.ni !== latest.ni) addReason(id, "entity-bytes-changed");
       if (stableEntity(prior) !== stableEntity(latest)) addReason(id, "entity-provenance-or-rights-changed");
       const before = list(inbound[0].get(id) ?? []), after = list(inbound[1].get(id) ?? []);
-      if (canonical(before) !== canonical(after)) addReason(id, "incoming-dependency-changed");
+      if (coincidenceKey(before) !== coincidenceKey(after)) addReason(id, "incoming-dependency-changed");
     }
   }
   // These are caller-mapped SignChain comparisons, not asserted entity revisions.
   // The same existing PROV dependency graph performs all downstream traversal.
   for (const { entityId } of orderedRechecks) addReason(entityId, "signchain-original-evidence-recheck");
   const changedActivities = [...new Set([...oldActs.keys(), ...nowActs.keys()])]
-    .filter(id => canonical(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== canonical(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(compareText);
+    .filter(id => coincidenceKey(oldActs.get(id) ? stableActivity(oldActs.get(id)) : null) !== coincidenceKey(nowActs.get(id) ? stableActivity(nowActs.get(id)) : null)).sort(compareText);
   const changedAgents = [...new Set([...oldAgents.keys(), ...nowAgents.keys()])]
     .filter(id => (oldAgents.has(id) ? stableAgent(oldAgents.get(id)) : null) !== (nowAgents.has(id) ? stableAgent(nowAgents.get(id)) : null)).sort(compareText);
   // Provenance responsibility extends through source-admitted prov:actedOnBehalfOf.
