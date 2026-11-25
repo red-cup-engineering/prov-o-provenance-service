@@ -1,9 +1,8 @@
-import { compareText } from "@red-cup-engineering/semiotic-content-address-system";
+import { addressContent, compareText, sha256Base64Url } from "@red-cup-engineering/semiotic-content-address-system";
 import { iriTerm, literal } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-terms";
 import { nquadLine } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/n-quads";
 import { canonicalizeNQuads } from "@red-cup-engineering/computer-triplet-serialized-content-engineering-services-section/rdf-canonicalization";
 import { compactStatementsAsJsonLd } from "@red-cup-engineering/json-ld-services-section/json-ld";
-import { addressContent } from "@red-cup-engineering/computer-content-address-engineering-services-section/content-address";
 import { admitManifest, indexManifest, mintIri, refusal } from "./manifest.mjs";
 import { provenanceGaps } from "./closure.mjs";
 import spdxVocabulary from "../data/records/spdx-license-identifiers-v3.29.0.json" with { type: "json" };
@@ -26,8 +25,6 @@ const AGENT_TYPES = {
   software: ["SoftwareAgent"],
   "ai-system": ["SoftwareAgent"],
 };
-
-const hash = (text) => addressContent(new TextEncoder().encode(text)).ni.slice("ni:///sha-256;".length);
 
 function repositoryUrl(repository) {
   if (/^https:\/\//u.test(repository)) return repository.replace(/\.git$/u, "").replace(/\/$/u, "");
@@ -73,7 +70,7 @@ export function provStatements(manifest) {
     const plan = activity.plan === undefined ? undefined : entityIri(activity.plan);
     for (const { agent: agentId, role } of activity.wasAssociatedWith) {
       const agent = agentIri(agentId), roleIri = mintIri(base, "role", role);
-      const association = `${base}association/${hash(`${subject}\u0000${agent}\u0000${role}`)}`;
+      const association = `${base}association/${sha256Base64Url(`${subject}\u0000${agent}\u0000${role}`)}`;
       add(subject, `${PROV}wasAssociatedWith`, iriTerm(agent));
       add(subject, `${PROV}qualifiedAssociation`, iriTerm(association));
       type(association, "Association");
@@ -84,7 +81,7 @@ export function provStatements(manifest) {
       add(roleIri, `${RDFS}label`, literal(role));
       const principal = index.agents.get(agentId)?.actedOnBehalfOf;
       if (principal !== undefined) {
-        const delegation = `${base}delegation/${hash(`${subject}\u0000${agent}\u0000${principal}`)}`;
+        const delegation = `${base}delegation/${sha256Base64Url(`${subject}\u0000${agent}\u0000${principal}`)}`;
         add(agent, `${PROV}qualifiedDelegation`, iriTerm(delegation));
         type(delegation, "Delegation");
         add(delegation, `${PROV}agent`, iriTerm(agentIri(principal)));
